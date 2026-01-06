@@ -37,5 +37,3 @@ export const {useCreateCourseMutation, useGetCreatorCourseQuery} = courseApi;
 
 
 
-
-
