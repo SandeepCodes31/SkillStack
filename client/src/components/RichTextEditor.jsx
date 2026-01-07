@@ -13,10 +13,11 @@ const RichTextEditor = ({ input , setInput,placeholder }) => {
     () => ({
       readonly: false, // all options from https://xdsoft.net/jodit/docs/,
       placeholder: placeholder || "Start typings...",
-      height: 300,
+      height: 200,
     }),
     [placeholder]
   );
+  
 
   return (
     <JoditEditor
