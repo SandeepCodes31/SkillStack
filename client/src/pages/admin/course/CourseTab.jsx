@@ -23,7 +23,6 @@ import React, { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-
 const CourseTab = () => {
   const [input, setInput] = useState({
     courseTitle: "",
@@ -35,23 +34,31 @@ const CourseTab = () => {
     courseThumbnail: "",
   });
 
+  const [previewThumbnail, setpreviewThumbnail] = useState(""); 
+
   const changeEventHandler = (e) => {
     const { name, value } = e.target;
     setInput({ ...input, [name]: value });
   };
 
   const selectCategory = (value) => {
-    setInput({...input, category:value});
-  }
+    setInput({ ...input, category: value });
+  };
 
   const selectCourseLevel = (value) => {
-    setInput({...input, courseLevel:value});
+    setInput({ ...input, courseLevel: value });
+  };
+
+  //get file
+  const selectThumbnail =(e) => {
+    const file = e.target.files?.[0];
+    if(file) {
+      setInput({...input, courseThumbnail:file});
+      const fileReader = new FileReader();
+      fileReader.onloadend =() => setpreviewThumbnail(fileReader.result);
+      fileReader.readAsDataURL(file);
+    }
   }
-
-
-
-
-
 
   const navigate = useNavigate();
   const isPublished = true;
@@ -158,10 +165,17 @@ const CourseTab = () => {
           </div>
           <div className="space-y-2">
             <Label>Course Thumbnail</Label>
-            <Input type="file" accept="image/*" className="w-fit" />
+            <Input type="file" onChange={selectThumbnail} accept="image/*" className="w-fit" />
+            {
+              previewThumbnail && (
+                <img src={previewThumbnail} className="w-64 my-2" alt="courseThumbnail" />
+              )
+            }
           </div>
           <div className="space-y-2 flex gap-5">
-            <Button onClick={() => navigate("/admin/course")} variant="outline">Cancel</Button>
+            <Button onClick={() => navigate("/admin/course")} variant="outline">
+              Cancel
+            </Button>
             <Button disabled={isLoading}>
               {isLoading ? (
                 <>
