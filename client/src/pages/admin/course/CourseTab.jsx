@@ -19,11 +19,17 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  useEditCourseMutation,
+  useGetCourseByIdQuery,
+} from "@/features/api/courseApi";
+import { toast } from "sonner";
 
 const CourseTab = () => {
+  const navigate = useNavigate();
   const [input, setInput] = useState({
     courseTitle: "",
     subTitle: "",
@@ -33,8 +39,53 @@ const CourseTab = () => {
     coursePrice: "",
     courseThumbnail: "",
   });
+  const params = useParams();
+  const courseId = params.courseId;
+  // const { data: courseByIdData, isLoading: courseByIdLoading } =
+  //   useGetCourseByIdQuery(courseId);
+  // const { data: courseByIdData, isLoading: courseByIdLoading } = useGetCourseByIdQuery(courseId);
+  const { data: courseByIdData, isLoading: courseByIdLoading } =
+    useGetCourseByIdQuery(courseId, { skip: !courseId });
 
-  const [previewThumbnail, setpreviewThumbnail] = useState(""); 
+  // useEffect(() => {
+  //   if (courseByIdData?.course) {
+  //     const course = courseByIdData?.course;
+  //     setInput({
+  //       courseTitle: course.courseTitle,
+  //       subTitle: course.subTitle,
+  //       description: course.description,
+  //       category: course.category,
+  //       courseLevel: course.courseLevel,
+  //       coursePrice: course.coursePrice,
+  //       courseThumbnail: course.courseThumbnail,
+  //     });
+  //   }
+  // }, [courseByIdData]);
+
+  useEffect(() => {
+  if (courseByIdData?.course) {
+    const course = courseByIdData.course;
+
+    setInput({
+      courseTitle: course.courseTitle || "",
+      subTitle: course.subTitle || "",
+      description: course.description || "",
+      category: course.category || "",
+      courseLevel: course.courseLevel || "",
+      coursePrice: course.coursePrice || "",
+      courseThumbnail: course.courseThumbnail || "",
+    });
+
++   setpreviewThumbnail(course.courseThumbnail || "");
+  }
+}, [courseByIdData]);
+
+
+  const [previewThumbnail, setpreviewThumbnail] = useState("");
+  const [imageError, setImageError] = useState("");
+
+  const [editCourse, { data, isLoading, isSuccess, error }] =
+    useEditCourseMutation();
 
   const changeEventHandler = (e) => {
     const { name, value } = e.target;
@@ -50,19 +101,95 @@ const CourseTab = () => {
   };
 
   //get file
-  const selectThumbnail =(e) => {
+  const selectThumbnail = (e) => {
     const file = e.target.files?.[0];
-    if(file) {
-      setInput({...input, courseThumbnail:file});
-      const fileReader = new FileReader();
-      fileReader.onloadend =() => setpreviewThumbnail(fileReader.result);
-      fileReader.readAsDataURL(file);
-    }
-  }
+    if (!file) return;
 
-  const navigate = useNavigate();
+    // ❌ reject large image
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image must be smaller than 10 MB");
+
+      setImageError("Image too large");
+      setInput((prev) => ({ ...prev, courseThumbnail: "" }));
+      setpreviewThumbnail("");
+
+      e.target.value = null; // reset file input
+      return;
+    }
+
+    // ✅ valid image
+    setImageError("");
+    setInput((prev) => ({ ...prev, courseThumbnail: file }));
+
+    const reader = new FileReader();
+    reader.onloadend = () => setpreviewThumbnail(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  //   const updateCourseHandler = async () => {
+  //     const formData = new FormData();
+  //     formData.append("courseTitle", input.courseTitle);
+  //     formData.append("subTitle", input.subTitle);
+  //     formData.append("description", input.description);
+  //     formData.append("category", input.category);
+  //     formData.append("courseLevel", input.courseLevel);
+  //     formData.append("coursePrice", input.coursePrice);
+  //     // formData.append("courseThumbnail", input.courseThumbnail);
+  //     if (input.courseThumbnail) {
+  //   formData.append("courseThumbnail", input.courseThumbnail);
+  // }
+  //     await editCourse({formData, courseId});
+  //   };
+
+  
+  const updateCourseHandler = async () => {
+    try {
+      const formData = new FormData();
+      formData.append("courseTitle", input.courseTitle);
+      formData.append("subTitle", input.subTitle);
+      formData.append("description", input.description);
+      formData.append("category", input.category);
+      formData.append("courseLevel", input.courseLevel);
+      formData.append("coursePrice", input.coursePrice);
+
+      if (input.courseThumbnail) {
+        formData.append("courseThumbnail", input.courseThumbnail);
+      }
+
+      const res = await editCourse({ formData, courseId }).unwrap();
+      console.log("UPDATE SUCCESS:", res);
+    } catch (err) {
+      console.error("UPDATE FAILED:", err);
+    }
+  };
+
+  // useEffect(() => {
+  //   if(isSuccess){
+  //     toast.success(data.message || "Course Update");
+
+  //   }
+  //   if(error){
+  //     toast.error(error.data.message || "Failed to Update course");
+  //   }
+  // },[isSuccess, error])
+
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success(data?.message || "Course Updated Successfully");
+    }
+
+    if (error) {
+      toast.error(
+        error?.data?.message || error?.error || "Failed to update course"
+      );
+    }
+  }, [isSuccess, error, data]);
+
+  // if (courseByIdLoading) return <h1>Loading...</h1>;
+  if (!courseId) return <h1>Course ID not found</h1>;
+
   const isPublished = true;
-  const isLoading = false;
+  // const isLoading = false;
   return (
     <Card>
       <CardHeader className="flex flex-row justify-between ">
@@ -108,7 +235,8 @@ const CourseTab = () => {
           <div className="flex items-center gap-6">
             <div className="space-y-2">
               <Label>Category</Label>
-              <Select onValueChange={selectCategory}>
+              {/* <Select onValueChange={selectCategory}> */}
+              <Select value={input.category} onValueChange={selectCategory}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
@@ -137,7 +265,11 @@ const CourseTab = () => {
             </div>
             <div className="space-y-2">
               <Label>Course Level</Label>
-              <Select onValueChange={selectCourseLevel}>
+              {/* <Select onValueChange={selectCourseLevel}> */}
+              <Select
+                value={input.courseLevel}
+                onValueChange={selectCourseLevel}
+              >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select a course" />
                 </SelectTrigger>
@@ -165,18 +297,28 @@ const CourseTab = () => {
           </div>
           <div className="space-y-2">
             <Label>Course Thumbnail</Label>
-            <Input type="file" onChange={selectThumbnail} accept="image/*" className="w-fit" />
-            {
-              previewThumbnail && (
-                <img src={previewThumbnail} className="w-64 my-2" alt="courseThumbnail" />
-              )
-            }
+            <Input
+              type="file"
+              onChange={selectThumbnail}
+              accept="image/*"
+              className="w-fit"
+            />
+            {previewThumbnail && (
+              <img
+                src={previewThumbnail}
+                className="w-64 my-2"
+                alt="courseThumbnail"
+              />
+            )}
           </div>
           <div className="space-y-2 flex gap-5">
             <Button onClick={() => navigate("/admin/course")} variant="outline">
               Cancel
             </Button>
-            <Button disabled={isLoading}>
+            <Button
+              disabled={isLoading || !!imageError}
+              onClick={updateCourseHandler}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait

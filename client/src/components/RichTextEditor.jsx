@@ -27,7 +27,7 @@ const RichTextEditor = ({ input , setInput,placeholder }) => {
       onChange={handleChange}
       config={config}
       tabIndex={1} // tabIndex of textarea
-      onBlur={(newContent) => setContent(newContent)} // preferred to use only this option to update the content for performance reasons
+      // onBlur={(newContent) => setContent(newContent)} // preferred to use only this option to update the content for performance reasons
       // onChange={newContent => {}}
     />
   );
