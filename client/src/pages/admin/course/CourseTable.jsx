@@ -64,7 +64,9 @@ const invoices = [
 
 const CourseTable = () => {
   const { data, isLoading } = useGetCreatorCourseQuery();
-
+  console.log("Courses data:", data);
+console.log("Courses loading:", isLoading);
+  // console.log("Navigating to course:", course._id);
   const navigate = useNavigate();
 
   if (isLoading) return <h1>Loading...</h1>;

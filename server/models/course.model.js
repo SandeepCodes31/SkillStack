@@ -34,7 +34,8 @@ const courseScheme = new mongoose.Schema({
   lectures: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
+      // ref: "user",
+      ref: "Lecture",
     },
   ],
   creator: {
