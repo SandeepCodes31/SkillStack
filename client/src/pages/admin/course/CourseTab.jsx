@@ -45,7 +45,7 @@ const CourseTab = () => {
   // const { data: courseByIdData, isLoading: courseByIdLoading } =
   //   useGetCourseByIdQuery(courseId);
   // const { data: courseByIdData, isLoading: courseByIdLoading } = useGetCourseByIdQuery(courseId);
-  const { data: courseByIdData, isLoading: courseByIdLoading } =
+  const { data: courseByIdData, isLoading: courseByIdLoading, refetch } =
     useGetCourseByIdQuery(courseId, { skip: !courseId });
 
   const [publishCourse,{}] = usePublishCourseMutation();
@@ -170,6 +170,7 @@ const CourseTab = () => {
     try {
       const response = await publishCourse({courseId, query:action});
       if(response.data){
+        refetch();
         toast.success(response.data.message);
       }
     } catch (error) {
