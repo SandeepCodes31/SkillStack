@@ -25,6 +25,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   useEditCourseMutation,
   useGetCourseByIdQuery,
+  usePublishCourseMutation,
 } from "@/features/api/courseApi";
 import { toast } from "sonner";
 
@@ -46,6 +47,8 @@ const CourseTab = () => {
   // const { data: courseByIdData, isLoading: courseByIdLoading } = useGetCourseByIdQuery(courseId);
   const { data: courseByIdData, isLoading: courseByIdLoading } =
     useGetCourseByIdQuery(courseId, { skip: !courseId });
+
+  const [publishCourse,{}] = usePublishCourseMutation();
 
   // useEffect(() => {
   //   if (courseByIdData?.course) {
@@ -163,6 +166,17 @@ const CourseTab = () => {
     }
   };
 
+  const publishStatusHandler = async (action) => {
+    try {
+      const response = await publishCourse({courseId, query:action});
+      if(response.data){
+        toast.success(response.data.message);
+      }
+    } catch (error) {
+      toast.error("Failed to publish or unpublish course");
+    }
+  }
+
   // useEffect(() => {
   //   if(isSuccess){
   //     toast.success(data.message || "Course Update");
@@ -188,7 +202,7 @@ const CourseTab = () => {
   // if (courseByIdLoading) return <h1>Loading...</h1>;
   if (!courseId) return <h1>Course ID not found</h1>;
 
-  const isPublished = true;
+  // const isPublished = true;
   // const isLoading = false;
   return (
     <Card>
@@ -200,8 +214,8 @@ const CourseTab = () => {
           </CardDescription>
         </div>
         <div className="space-x-2">
-          <Button variant="outline">
-            {isPublished ? "Unpublished" : "Publish"}
+          <Button variant="outline" onClick={() => publishStatusHandler(courseByIdData?.course.isPublished ? "false" : "true")}>
+            {courseByIdData?.course.isPublished ? "Unpublished" : "Publish"}
           </Button>
           <Button>Remove Course</Button>
         </div>
