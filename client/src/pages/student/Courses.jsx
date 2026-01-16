@@ -3,12 +3,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Course from "../student/Course";
 import { useGetPublishedCourseQuery } from "@/features/api/courseApi";
 
-const courses = [1, 2, 3, 4, 5, 6, 7, 8];
+// const courses = [1, 2, 3, 4, 5, 6, 7, 8];
 
 const Courses = () => {
 
   const {data, isLoading, isSuccess, isError} = useGetPublishedCourseQuery();
-  console.log(data);
+  // console.log(data);
+
+  if(isError) return <h1>Some error occurred while fetching courses!</h1>
+
 
   // const isLoading = false;
   return (
@@ -20,7 +23,7 @@ const Courses = () => {
             ? Array.from({ length: 8 }).map((_, index) => (
                 <SkeletonCard key={index} />
               ))
-            : courses.map((course, index) => <Course key={index} />)}
+            : data?.courses && data.courses.map((course, index) => <Course key={index} course={course}/>)}
         </div>
       </div>
     </div>
