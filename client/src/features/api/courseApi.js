@@ -21,10 +21,33 @@ export const courseApi = createApi({
       invalidatesTags: ["Refetch_Creator_Course"],
     }),
 
-    getPublishedCourse:builder.query({
-      query:() => ({
-        url:"/published-courses",
-        method:"GET",
+    getSearchCourse: builder.query({
+      query: ({ searchQuery, categories, sortByPrice }) => {
+        // Build qiery string
+        let queryString = `/search?query=${encodeURIComponent(searchQuery)}`;
+
+        // append cateogry
+        if (categories && categories.length > 0) {
+          const categoriesString = categories.map(encodeURIComponent).join(",");
+          queryString += `&categories=${categoriesString}`;
+        }
+
+        // Append sortByPrice is available
+        if (sortByPrice) {
+          queryString += `&sortByPrice=${encodeURIComponent(sortByPrice)}`;
+        }
+
+        return {
+          url: queryString,
+          method: "GET",
+        };
+      },
+    }),
+
+    getPublishedCourse: builder.query({
+      query: () => ({
+        url: "/published-courses",
+        method: "GET",
       }),
     }),
 
@@ -62,7 +85,7 @@ export const courseApi = createApi({
         url: `/${courseId}/lecture`,
         method: "GET",
       }),
-      providesTags:["Refetch_Lecture"]
+      providesTags: ["Refetch_Lecture"],
     }),
 
     EditLecture: builder.mutation({
@@ -83,7 +106,7 @@ export const courseApi = createApi({
         url: `/lecture/${lectureId}`,
         method: "DELETE",
       }),
-      invalidatesTags:["Refetch_Lecture"]
+      invalidatesTags: ["Refetch_Lecture"],
     }),
     getLectureById: builder.query({
       query: (lectureId) => ({
@@ -91,18 +114,18 @@ export const courseApi = createApi({
         method: "GET",
       }),
     }),
-    publishCourse:builder.mutation({
-      query:({courseId,query}) => ({
-        url:`/${courseId}?publish=${query}`,
-        method:"PATCH"
-      })
+    publishCourse: builder.mutation({
+      query: ({ courseId, query }) => ({
+        url: `/${courseId}?publish=${query}`,
+        method: "PATCH",
+      }),
     }),
-
   }),
 });
 
 export const {
   useCreateCourseMutation,
+  useGetSearchCourseQuery, //this section was created later after course and lecture section
   useGetPublishedCourseQuery, //this section was created later after course and lecture section
   useGetCreatorCourseQuery,
   useEditCourseMutation,
@@ -112,5 +135,5 @@ export const {
   useEditLectureMutation,
   useRemoveLectureMutation,
   useGetLectureByIdQuery,
-  usePublishCourseMutation
+  usePublishCourseMutation,
 } = courseApi;

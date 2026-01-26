@@ -93,10 +93,10 @@ const Navbar = () => {
                       Log out
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
-                  {user.role === "instructor" && (
+                  {user?.role === "instructor" && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem>Dashboard</DropdownMenuItem>
+                      <DropdownMenuItem><Link to="/admin/dashboard">Dashboard</Link></DropdownMenuItem>
                     </>
                   )}
                 </DropdownMenuContent>
@@ -115,7 +115,7 @@ const Navbar = () => {
       </div>
       <div className="flex md:hidden items-center justify-between px-4 h-full">
         <h1 className="font-extrabold text-2xl">SkillStack</h1>
-        <MobileNavbar />
+        <MobileNavbar user={user} />
       </div>
     </div>
   );
@@ -123,32 +123,57 @@ const Navbar = () => {
 
 export default Navbar;
 
-const MobileNavbar = () => {
-  const role = "instructor"; //dummy role
+const MobileNavbar = ({user}) => {
+
+  const navigate = useNavigate();
+const [logoutUser, { data, isSuccess }] = useLogoutUserMutation();
+
+
+
+const logoutHandler = async () => {
+  await logoutUser();
+};
+
+useEffect(() => {
+  if (isSuccess) {
+    toast.success(data?.message || "Logged out Successfully");
+    navigate("/login");
+  }
+}, [isSuccess]);
+
+
+
+
+
+
+  // const role = "instructor"; //dummy role
   return (
     /* Mobile Navbar can be implemented here */
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline">
+        <Button 
+        size="icon" 
+        className="rounded-full hover:bg-gray-200" 
+        variant="outline">
           <Menu />
         </Button>
       </SheetTrigger>
       <SheetContent className="flex flex-col pl-5 pr-5 pb-1 ">
         <SheetHeader className="flex flex-row items-center justify-between mt-7">
-          <SheetTitle>SkillStack</SheetTitle>
+          <SheetTitle><Link to="/">SkillStack</Link></SheetTitle>
           <DarkMode />
         </SheetHeader>
 
         <Separator className="mr-2 " />
         <nav className="flex flex-col space-y-4  ">
-          <span>My Learning</span>
-          <span>Edit Profile</span>
-          <p>Log Out</p>
+          <Link to="/my-learning">My Learning</Link>
+          <Link to="/profile">Edit Profile</Link>
+          <p onClick={logoutHandler}>Log Out</p>
         </nav>
-        {role === "instructor" && (
+        {user?.role === "instructor" && (
           // <SheetFooter>
           <SheetClose asChild>
-            <Button type="submit">Dashboard</Button>
+            <Button type="submit" onClick={()=> navigate("/admin/dashboard")}>Dashboard</Button>
           </SheetClose>
           // </SheetFooter>
         )}

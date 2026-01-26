@@ -7,6 +7,8 @@ import userRoute from "./routes/user.route.js";
 import courseRoute from "./routes/course.route.js";
 import mediaRoute from "./routes/media.route.js";
 import purchaseRoute from "./routes/purchaseCourse.route.js"
+import courseProgressRoute from "../server/routes/courseProgress.route.js"
+
 
 dotenv.config({});
 // Call databse connection here
@@ -31,6 +33,9 @@ App.use("/api/v1/media", mediaRoute);
 App.use("/api/v1/user", userRoute);
 App.use("/api/v1/course", courseRoute);
 App.use("/api/v1/purchase", purchaseRoute);
+App.use("/api/v1/progress", courseProgressRoute);
+
+
 
 App.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
