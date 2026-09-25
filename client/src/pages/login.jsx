@@ -116,8 +116,9 @@ const Login = ({ defaultTab = "login" }) => {
       };
 
       try {
-        await registerUser(payload).unwrap();
-        setLoginInput((prev) => ({ ...prev, email: signupInput.email.trim() }));
+        const res = await registerUser(payload).unwrap();
+        toast.success(res?.message || "Registered successfully! Please log in.");
+        setLoginInput((prev) => ({ ...prev, email: signupInput.email.trim(), password: signupInput.password }));
         setSignupInput({
           name: "",
           email: "",
@@ -127,6 +128,12 @@ const Login = ({ defaultTab = "login" }) => {
         handleTabChange("login");
       } catch (err) {
         console.error("Signup error:", err);
+        const errMsg =
+          err?.data?.message ||
+          (typeof err?.data === "string" ? err.data : null) ||
+          err?.error ||
+          "Registration failed. Please try again.";
+        toast.error(errMsg);
       }
     } else {
       if (!loginInput.email.trim() || !loginInput.password) {
@@ -141,23 +148,30 @@ const Login = ({ defaultTab = "login" }) => {
       };
 
       try {
-        await loginUser(payload).unwrap();
+        const res = await loginUser(payload).unwrap();
+        toast.success(res?.message || "Logged in successfully");
+        const userRole = res?.user?.role;
+        const isAdmin = userRole === "admin" || userRole === "instructor";
+        if (isAdmin) {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/student/dashboard");
+        }
       } catch (err) {
         console.error("Login error:", err);
+        const errMsg =
+          err?.data?.message ||
+          (typeof err?.data === "string" ? err.data : null) ||
+          err?.error ||
+          "Login failed. Please check your credentials.";
+        toast.error(errMsg);
       }
     }
   };
 
-  // Toast notifications & redirects
+  // Sync redirect on state update if needed
   useEffect(() => {
-    if (registerIsSuccess && registerData) {
-      toast.success(registerData.message || "Registered successfully! Please log in.");
-    }
-    if (registerError) {
-      toast.error(registerError.data?.message || "Registration failed");
-    }
     if (loginIsSuccess && loginData) {
-      toast.success(loginData.message || "Logged in successfully");
       const userRole = loginData?.user?.role;
       const isAdmin = userRole === "admin" || userRole === "instructor";
       if (isAdmin) {
@@ -166,23 +180,7 @@ const Login = ({ defaultTab = "login" }) => {
         navigate("/student/dashboard");
       }
     }
-    if (loginError) {
-      const msg =
-        loginError.data?.message ||
-        (typeof loginError.data === "string" ? loginError.data : null) ||
-        loginError.error ||
-        "Login failed. Please check your credentials.";
-      toast.error(msg);
-    }
-  }, [
-    loginIsSuccess,
-    loginData,
-    loginError,
-    registerIsSuccess,
-    registerData,
-    registerError,
-    navigate,
-  ]);
+  }, [loginIsSuccess, loginData, navigate]);
 
   const isBusy = loginIsLoading || registerIsLoading;
 

@@ -14,7 +14,9 @@ const isAuthenticated = async (req, res, next) => {
         success: false,
       });
     }
-    const decode = jwt.verify(token, process.env.SECRET_KEY);
+    const secretKey =
+      process.env.SECRET_KEY || "snjekfiejgcxkakasdfjd_skillstack_jwt_secret_2026";
+    const decode = jwt.verify(token, secretKey);
     req.id = decode.userId;
     req.role = decode.role;
     next();

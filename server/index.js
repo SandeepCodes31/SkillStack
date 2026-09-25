@@ -62,7 +62,8 @@ App.use(
       const isAllowed =
         allowedOrigins.includes(origin) ||
         origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:");
+        origin.startsWith("http://127.0.0.1:") ||
+        origin.endsWith(".vercel.app");
       if (isAllowed) {
         callback(null, true);
       } else {
@@ -100,6 +101,11 @@ App.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
 });
 
-App.listen(PORT, () => {
-  console.log(`Server is running securely on port ${PORT}`);
-});
+// Export App for serverless deployment (Vercel) and listen in local development
+if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
+  App.listen(PORT, () => {
+    console.log(`Server is running securely on port ${PORT}`);
+  });
+}
+
+export default App;

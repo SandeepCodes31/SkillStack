@@ -31,14 +31,14 @@ export const register = async (req, res) => {
       email,
       password: hashedPassword,
       role: isAdminRegistration ? "admin" : "student",
-      isVerified: !isAdminRegistration, // Admin accounts require management verification before login
+      isVerified: true,
     });
 
     if (isAdminRegistration) {
       return res.status(201).json({
         success: true,
         message:
-          "Admin registration submitted! Your account will be verified by management and you will be contacted for further process.",
+          "Admin account created successfully! You can now log in.",
       });
     }
 
