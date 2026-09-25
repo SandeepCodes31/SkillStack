@@ -19,7 +19,15 @@ import EditLecture from "./pages/admin/lecture/EditLecture";
 import CourseDetail from "./pages/student/CourseDetail";
 import CourseProgress from "./pages/student/CourseProgress";
 import SearchPage from "./pages/student/SearchPage";
-import { AdminRoute, AuthenticatedUser, ProtectedRoute } from "./components/ProtectedRoutes";
+import StudentDashboard from "./pages/student/StudentDashboard";
+import PaymentSuccess from "./pages/student/PaymentSuccess";
+import PaymentCancel from "./pages/student/PaymentCancel";
+import AdminPayments from "./pages/admin/payment/AdminPayments";
+import QuizPage from "./pages/student/quiz/QuizPage";
+import VerifyCertificate from "./pages/student/VerifyCertificate";
+import AdminQuizzes from "./pages/admin/quiz/AdminQuizzes";
+import AdminCertificates from "./pages/admin/certificate/AdminCertificates";
+import { AdminRoute, AuthenticatedUser, ProtectedRoute, StudentRoute } from "./components/ProtectedRoutes";
 import PurchaseCourseProtectedRoute from "./components/PurchaseCourseProtectedRoute";
 import { ThemeProvider } from "./components/ThemeProvider";
 
@@ -39,7 +47,15 @@ const appRouter = createBrowserRouter([
       },
       {
         path: "login",
-        element: <AuthenticatedUser><Login /></AuthenticatedUser>
+        element: <AuthenticatedUser><Login defaultTab="login" /></AuthenticatedUser>
+      },
+      {
+        path: "signup",
+        element: <AuthenticatedUser><Login defaultTab="signup" /></AuthenticatedUser>
+      },
+      {
+        path: "student/dashboard",
+        element: <ProtectedRoute><StudentRoute><StudentDashboard /></StudentRoute></ProtectedRoute>
       },
       {
         path: "my-learning",
@@ -60,6 +76,26 @@ const appRouter = createBrowserRouter([
       {
         path: "course-progress/:courseId",
         element:<ProtectedRoute><PurchaseCourseProtectedRoute><CourseProgress /></PurchaseCourseProtectedRoute></ProtectedRoute>,
+      },
+      {
+        path: "payment-success",
+        element: <PaymentSuccess />,
+      },
+      {
+        path: "payment-cancel",
+        element: <PaymentCancel />,
+      },
+      {
+        path: "course/:courseId/quiz",
+        element: <ProtectedRoute><PurchaseCourseProtectedRoute><QuizPage /></PurchaseCourseProtectedRoute></ProtectedRoute>,
+      },
+      {
+        path: "verify-certificate",
+        element: <VerifyCertificate />,
+      },
+      {
+        path: "verify-certificate/:certificateId",
+        element: <VerifyCertificate />,
       },
       
       //admin route starts here
@@ -90,6 +126,18 @@ const appRouter = createBrowserRouter([
           {
             path:"course/:courseId/lecture/:lectureId",
             element:<EditLecture/>
+          },
+          {
+            path:"quizzes",
+            element:<AdminQuizzes/>
+          },
+          {
+            path:"certificates",
+            element:<AdminCertificates/>
+          },
+          {
+            path:"payments",
+            element:<AdminPayments/>
           }
         ]
       }

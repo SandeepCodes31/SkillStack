@@ -11,10 +11,11 @@ export const ProtectedRoute = ({children}) => {
     return children;
 }
 export const AuthenticatedUser = ({children}) => {
-    const {isAuthenticated} = useSelector(store=>store.auth);
+    const {user, isAuthenticated} = useSelector(store=>store.auth);
 
     if(isAuthenticated){
-        return <Navigate to="/"/>
+        const isAdmin = user?.role === "instructor" || user?.role === "admin";
+        return <Navigate to={isAdmin ? "/admin/dashboard" : "/student/dashboard"}/>
     }
 
     return children;
@@ -28,8 +29,23 @@ export const AdminRoute = ({children}) => {
         return <Navigate to="/login"/>
     }
 
-    if(user?.role !== "instructor"){
-        return <Navigate to="/"/>
+    const isAdmin = user?.role === "instructor" || user?.role === "admin";
+    if(!isAdmin){
+        return <Navigate to="/student/dashboard"/>
+    }
+
+    return children;
+}
+
+export const StudentRoute = ({children}) => {
+    const {user, isAuthenticated} = useSelector(store=>store.auth);
+
+    if(!isAuthenticated){
+        return <Navigate to="/login"/>
+    }
+
+    if(user?.role !== "student"){
+        return <Navigate to="/admin/dashboard"/>
     }
 
     return children;
