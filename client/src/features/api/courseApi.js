@@ -1,8 +1,7 @@
 // import CreateLecture from "@/pages/admin/lecture/CreateLecture";
 import EditLecture from "@/pages/admin/lecture/EditLecture";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-
-const COURSE_API = "http://localhost:8080/api/v1/course";
+import { COURSE_API } from "@/config/api.config";
 
 export const courseApi = createApi({
   reducerPath: "courseApi",
@@ -22,19 +21,33 @@ export const courseApi = createApi({
     }),
 
     getSearchCourse: builder.query({
-      query: ({ searchQuery, categories, sortByPrice }) => {
-        // Build qiery string
-        let queryString = `/search?query=${encodeURIComponent(searchQuery)}`;
+      query: ({
+        searchQuery = "",
+        categories = [],
+        levels = [],
+        price = "",
+        sort = "",
+        sortByPrice = "",
+      }) => {
+        let queryString = `/search?query=${encodeURIComponent(searchQuery || "")}`;
 
-        // append cateogry
         if (categories && categories.length > 0) {
           const categoriesString = categories.map(encodeURIComponent).join(",");
           queryString += `&categories=${categoriesString}`;
         }
 
-        // Append sortByPrice is available
-        if (sortByPrice) {
-          queryString += `&sortByPrice=${encodeURIComponent(sortByPrice)}`;
+        if (levels && levels.length > 0) {
+          const levelsString = levels.map(encodeURIComponent).join(",");
+          queryString += `&levels=${levelsString}`;
+        }
+
+        if (price) {
+          queryString += `&price=${encodeURIComponent(price)}`;
+        }
+
+        const sorting = sort || sortByPrice;
+        if (sorting) {
+          queryString += `&sort=${encodeURIComponent(sorting)}`;
         }
 
         return {

@@ -1,11 +1,11 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { userLoggedIn, userLoggedOut } from "../authSlice";
-
-const USER_API = "http://localhost:8080/api/v1/user/";
+import { USER_API } from "@/config/api.config";
 
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: fetchBaseQuery({ baseUrl: USER_API, credentials: "include" }),
+  tagTypes: ["User"],
   endpoints: (builder) => ({
     registerUser: builder.mutation({
       query: (inputData) => ({
@@ -20,6 +20,7 @@ export const authApi = createApi({
         method: "POST",
         body: inputData,
       }),
+      invalidatesTags: ["User"],
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
@@ -34,7 +35,7 @@ export const authApi = createApi({
         url: "logout",
         method: "GET",
       }),
-
+      invalidatesTags: ["User"],
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
         try {
           dispatch(userLoggedOut({ user: null }));
@@ -48,12 +49,13 @@ export const authApi = createApi({
         url: "profile",
         method: "GET",
       }),
+      providesTags: ["User"],
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
           dispatch(userLoggedIn({ user: result.data.user }));
         } catch (error) {
-          console.log(error);
+          dispatch(userLoggedOut());
         }
       },
     }),
@@ -65,11 +67,13 @@ export const authApi = createApi({
         body: FormData,
         credentials: "include",
       }),
-      async onQueryStarted(formData, { queryFulfilled }) {
-        console.log("Starting profile update with data:", formData);
+      invalidatesTags: ["User"],
+      async onQueryStarted(formData, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
-          console.log("Profile update result:", result);
+          if (result?.data?.user) {
+            dispatch(userLoggedIn({ user: result.data.user }));
+          }
         } catch (error) {
           console.log("Profile update failed:", error);
         }

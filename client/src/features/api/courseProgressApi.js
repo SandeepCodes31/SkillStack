@@ -1,7 +1,6 @@
-// import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/dist/query/react"; //note this mistake of wrong import  
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-
-const COURSE_PROGRESS_API = "http://localhost:8080/api/v1/progress";
+import { streakApi } from "./streakApi";
+import { COURSE_PROGRESS_API } from "@/config/api.config";
 
 export const courseProgressApi = createApi({
   reducerPath: "courseProgressApi",
@@ -21,19 +20,37 @@ export const courseProgressApi = createApi({
         url: `/${courseId}/lecture/${lectureId}/view`,
         method:"POST"
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(streakApi.util.invalidateTags(["Streak", "Badges", "Activity", "Stats"]));
+        } catch {}
+      },
     }),
 
     completeCourse: builder.mutation({
         query:(courseId) => ({
             url:`/${courseId}/complete`,
             method:"POST"
-        })
+        }),
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(streakApi.util.invalidateTags(["Streak", "Badges", "Activity", "Stats"]));
+          } catch {}
+        },
     }),
     inCompleteCourse: builder.mutation({
         query:(courseId) => ({
             url:`/${courseId}/incomplete`,
             method:"POST"
-        })
+        }),
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            await queryFulfilled;
+            dispatch(streakApi.util.invalidateTags(["Streak", "Badges", "Activity", "Stats"]));
+          } catch {}
+        },
     }),
     
   }),

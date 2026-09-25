@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { User } from "../models/user.model.js";
 
 const isAuthenticated = async (req, res, next) => {
   // ✅ allow CORS preflight to pass
@@ -15,23 +16,36 @@ const isAuthenticated = async (req, res, next) => {
     }
     const decode = jwt.verify(token, process.env.SECRET_KEY);
     req.id = decode.userId;
+    req.role = decode.role;
     next();
-    // if (!decode) {
-    //   return res.status(401).json({
-    //     message: "Invalid token",
-    //     success: false,
-    //   });
-    // }
-    // req.id = decode.userId;
-    // next();
-    // } catch (error) {
-    //   console.log(error);
-    // }
   } catch (error) {
     console.log("AUTH ERROR:", error.message);
     return res.status(401).json({
       success: false,
       message: "Invalid or expired token",
+    });
+  }
+};
+
+export const authorizeAdmin = async (req, res, next) => {
+  try {
+    let role = req.role;
+    if (!role) {
+      const user = await User.findById(req.id);
+      role = user?.role;
+    }
+    const isAdmin = role === "admin" || role === "instructor";
+    if (!isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admin privileges required.",
+      });
+    }
+    next();
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Authorization error",
     });
   }
 };
