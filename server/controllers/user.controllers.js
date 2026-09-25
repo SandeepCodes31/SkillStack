@@ -7,35 +7,49 @@ import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
 // Bussiness logic behind Signup page
 export const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
       });
     }
-    const user = await User.findOne({ email });
-    if (user) {
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: "User already exists",
+        message: "User with this email already exists",
       });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
+    const isAdminRegistration = role === "admin" || role === "instructor";
+
     await User.create({
       name,
       email,
       password: hashedPassword,
+      role: isAdminRegistration ? "admin" : "student",
+      isVerified: !isAdminRegistration, // Admin accounts require management verification before login
     });
+
+    if (isAdminRegistration) {
+      return res.status(201).json({
+        success: true,
+        message:
+          "Admin registration submitted! Your account will be verified by management and you will be contacted for further process.",
+      });
+    }
+
     return res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message: "User registered successfully! Please log in.",
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: "Failed to register",
-      // error:error.message
     });
   }
 };
@@ -43,7 +57,7 @@ export const register = async (req, res) => {
 // Bussiness logic behind Login page
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -55,10 +69,8 @@ export const login = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "User not found",
-        // message:"Incorrect email or password"
       });
     }
-    // generateToken(res, user, `Welcome back ${user.name}`);
 
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
@@ -67,12 +79,27 @@ export const login = async (req, res) => {
         message: "Incorrect email or password",
       });
     }
-    generateToken(res, user);
 
-    return res.status(200).json({
-      success: true,
-      message: `Welcome back ${user.name}`,
-    });
+    // Role-based validation
+    const isAdmin = user.role === "admin" || user.role === "instructor";
+    if (role === "admin" && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Access denied. This account does not have Admin or Instructor privileges. Please switch to Student to sign in.",
+      });
+    }
+
+    // Verification check for admin accounts
+    if (isAdmin && user.isVerified === false) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Your account is pending verification by management. You will be contacted for further process before login is enabled.",
+      });
+    }
+
+    return generateToken(res, user, `Welcome back ${user.name}`);
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -82,12 +109,19 @@ export const login = async (req, res) => {
   }
 };
 
-export const logout = async (__dirname, res) => {
+export const logout = async (req, res) => {
   try {
-    return res.status(200).cookie("token", "", { maxAge: 0 }).json({
-      success: true,
-      message: "Logged out Successfully",
-    });
+    return res
+      .status(200)
+      .cookie("token", "", {
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 0,
+      })
+      .json({
+        success: true,
+        message: "Logged out Successfully",
+      });
   } catch (error) {
     console.log(error);
     return res.status(500).json({
@@ -100,7 +134,15 @@ export const logout = async (__dirname, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const userId = req.id;
-    const user = await User.findById(userId).select("-password").populate("enrolledCourses");
+    const user = await User.findById(userId)
+      .select("-password")
+      .populate({
+        path: "enrolledCourses",
+        populate: [
+          { path: "creator", select: "name email photoURL" },
+          { path: "lectures", select: "lectureTitle isPreviewFree" },
+        ],
+      });
     if (!user) {
       return res.status(404).json({
         message: "Profile not found",

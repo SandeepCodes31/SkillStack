@@ -15,8 +15,12 @@ const userSchema = new mongoose.Schema({
     },
     role:{
         type:String,
-        enum:["instructor","student"],
+        enum:["instructor","student","admin"],
         default:"student"
+    },
+    isVerified:{
+        type:Boolean,
+        default:true
     },
     enrolledCourses:[   
         {

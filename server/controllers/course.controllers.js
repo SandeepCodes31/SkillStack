@@ -1,5 +1,6 @@
 import { Course } from "../models/course.model.js";
 import { Lecture } from "../models/lecture.model.js";
+import { User } from "../models/user.model.js";
 import {
   deleteMediaFromCloudinary,
   deleteVideoFromCloudinary,
@@ -23,7 +24,7 @@ export const createCourse = async (req, res) => {
     });
     return res.status(201).json({
       course,
-      message: "Course created",
+      message: "Course created successfully.",
     });
   } catch (error) {
     console.log(error);
@@ -34,52 +35,129 @@ export const createCourse = async (req, res) => {
 };
 
 
-export const searchCourse = async (req,res) => {
-    try {
-        const {query = "", categories = [], sortByPrice =""} = req.query;
-        console.log(categories);
-        
-        // create search query
-        const searchCriteria = {
-            isPublished:true,
-            $or:[
-                {courseTitle: {$regex:query, $options:"i"}},
-                {subTitle: {$regex:query, $options:"i"}},
-                {category: {$regex:query, $options:"i"}},
-            ]
-        }
+export const searchCourse = async (req, res) => {
+  try {
+    const {
+      query = "",
+      categories = [],
+      levels = [],
+      price = "",
+      sortByPrice = "",
+      sort = "",
+    } = req.query;
 
-        // if categories selected
-        if(categories.length > 0) {
-            searchCriteria.category = {$in: categories};
-        }
+    const searchCriteria = {
+      isPublished: true,
+    };
 
-        // define sorting order
-        const sortOptions = {};
-        if(sortByPrice === "low"){
-            sortOptions.coursePrice = 1;//sort by price in ascending
-        }else if(sortByPrice === "high"){
-            sortOptions.coursePrice = -1; // descending
-        }
+    // Text search if query provided
+    const trimmedQuery = query ? String(query).trim() : "";
+    if (trimmedQuery) {
+      // Find instructors matching query
+      const matchingInstructors = await User.find({
+        name: { $regex: trimmedQuery, $options: "i" },
+      }).select("_id");
+      const instructorIds = matchingInstructors.map((u) => u._id);
 
-        let courses = await Course.find(searchCriteria).populate({path:"creator", select:"name photoUrl"}).sort(sortOptions);
+      const orConditions = [
+        { courseTitle: { $regex: trimmedQuery, $options: "i" } },
+        { subTitle: { $regex: trimmedQuery, $options: "i" } },
+        { description: { $regex: trimmedQuery, $options: "i" } },
+        { category: { $regex: trimmedQuery, $options: "i" } },
+      ];
 
-        return res.status(200).json({
-            success:true,
-            courses: courses || []
-        });
+      if (instructorIds.length > 0) {
+        orConditions.push({ creator: { $in: instructorIds } });
+      }
 
-    } catch (error) {
-        console.log(error);
-        
+      searchCriteria.$or = orConditions;
     }
-}
+
+    // Categories filter
+    const categoriesArray =
+      typeof categories === "string"
+        ? categories.split(",").map((c) => c.trim()).filter(Boolean)
+        : Array.isArray(categories)
+        ? categories
+        : [];
+
+    if (categoriesArray.length > 0) {
+      searchCriteria.category = {
+        $in: categoriesArray.map(
+          (c) => new RegExp(`^${c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+        ),
+      };
+    }
+
+    // Difficulty level filter
+    const levelsArray =
+      typeof levels === "string"
+        ? levels.split(",").map((l) => l.trim()).filter(Boolean)
+        : Array.isArray(levels)
+        ? levels
+        : [];
+
+    if (levelsArray.length > 0) {
+      const regexLevels = levelsArray.map((lvl) => {
+        if (/advance/i.test(lvl)) return /advance/i;
+        if (/medium|intermediate/i.test(lvl)) return /medium|intermediate/i;
+        return new RegExp(`^${lvl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+      });
+      searchCriteria.courseLevel = { $in: regexLevels };
+    }
+
+    // Price filter (free or paid)
+    if (price === "free") {
+      searchCriteria.coursePrice = { $in: [0, null] };
+    } else if (price === "paid") {
+      searchCriteria.coursePrice = { $gt: 0 };
+    }
+
+    // Sorting order
+    const sortOrder = sort || sortByPrice;
+    const sortOptions = {};
+    if (sortOrder === "low" || sortOrder === "price-low") {
+      sortOptions.coursePrice = 1; // Price: Low to High
+    } else if (sortOrder === "high" || sortOrder === "price-high") {
+      sortOptions.coursePrice = -1; // Price: High to Low
+    } else if (sortOrder === "newest") {
+      sortOptions.createdAt = -1;
+    } else if (sortOrder === "oldest") {
+      sortOptions.createdAt = 1;
+    } else {
+      sortOptions.createdAt = -1; // Default
+    }
+
+    const [courses, allCategories] = await Promise.all([
+      Course.find(searchCriteria)
+        .populate({ path: "creator", select: "name photoURL photoUrl" })
+        .sort(sortOptions),
+      Course.find({ isPublished: true }).distinct("category"),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      courses: courses || [],
+      allCategories: allCategories || [],
+    });
+  } catch (error) {
+    console.log("SEARCH COURSE ERROR 👉", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to search courses",
+      courses: [],
+    });
+  }
+};
 
 
 
 export const getPublishedCourse = async (_, res) => {
   try {
-    const courses = await Course.find({isPublished:true}).populate({path:"creator", select:"name photoURL"});
+    const courses = await Course.find({ isPublished: true })
+      .populate({ path: "creator", select: "name photoURL" })
+      .populate({ path: "lectures", select: "lectureTitle isPreviewFree" })
+      .sort({ createdAt: -1 });
     if(!courses){
       return res.status(404).json({
         message:"Course not found"
