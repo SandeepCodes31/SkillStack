@@ -1,0 +1,21 @@
+{
+  "name": "skillstack",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SkillStack LMS - Enterprise Full-Stack Learning Management System",
+  "scripts": {
+    "build": "npm run build --prefix client",
+    "client": "npm run dev --prefix client",
+    "server": "npm run dev --prefix server"
+  },
+  "keywords": [
+    "lms",
+    "skillstack",
+    "react19",
+    "express5",
+    "mongodb",
+    "stripe"
+  ],
+  "author": "Sandeep Pal",
+  "license": "ISC"
+}
