@@ -16,8 +16,6 @@ import {
 
 const router = express.Router();
 
-router.use(generalApiLimiter);
-
 router.route("/register").post(authLimiter, register);
 router.route("/login").post(authLimiter, login);
 router.route("/logout").get(logout);

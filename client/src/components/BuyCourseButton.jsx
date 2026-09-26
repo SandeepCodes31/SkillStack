@@ -13,7 +13,10 @@ const BuyCourseButton = ({ courseId }) => {
   const purchaseCourseHandler = async () => {
     try {
       const res = await createCheckoutSession(courseId).unwrap();
-      if (res?.url) {
+      if (res?.isFree && res?.url) {
+        toast.success(res?.message || "Enrolled in course successfully!");
+        navigate(`/course-progress/${courseId}`);
+      } else if (res?.url) {
         window.location.href = res.url;
       } else {
         toast.error("Failed to generate checkout session URL");
@@ -23,6 +26,11 @@ const BuyCourseButton = ({ courseId }) => {
       if (err?.status === 401) {
         toast.error("Please sign in to purchase this course");
         navigate("/login");
+        return;
+      }
+      if (err?.data?.alreadyEnrolled) {
+        toast.info(err?.data?.message || "You already own this course!");
+        navigate(`/course-progress/${courseId}`);
         return;
       }
       const errMsg =

@@ -172,9 +172,29 @@ export const createCheckoutSession = async (req, res) => {
     // Enforce server-side course price (Paise = INR * 100)
     const coursePrice = Number(course.coursePrice);
     if (isNaN(coursePrice) || coursePrice <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid course price. Cannot checkout this course.",
+      // Free course auto-enrollment
+      await finalizePurchase({
+        sessionId: `free_${Date.now()}_${userId}`,
+        paymentIntentId: `free_intent_${Date.now()}`,
+        userId,
+        courseId,
+        amountTotal: 0,
+        currency: "inr",
+        paymentMethod: "free_enrollment",
+      });
+
+      const reqOrigin =
+        req.headers.origin && !req.headers.origin.includes("null")
+          ? req.headers.origin
+          : null;
+      const frontendUrl =
+        reqOrigin || process.env.FRONTEND_URL || "http://localhost:5173";
+
+      return res.status(200).json({
+        success: true,
+        message: "Enrolled in free course successfully!",
+        isFree: true,
+        url: `${frontendUrl}/course-progress/${courseId}`,
       });
     }
 
@@ -501,18 +521,21 @@ export const getCourseDetailWithPurchaseStatus = async (req, res) => {
       });
     }
 
-    const user = await User.findById(userId);
-    const isEnrolled = user?.enrolledCourses?.some(
-      (cId) => cId.toString() === courseId.toString()
-    );
+    let isPurchased = false;
+    if (userId) {
+      const user = await User.findById(userId);
+      const isEnrolled = user?.enrolledCourses?.some(
+        (cId) => cId.toString() === courseId.toString()
+      );
 
-    const completedPurchase = await CoursePurchase.findOne({
-      userId,
-      courseId,
-      status: "completed",
-    });
+      const completedPurchase = await CoursePurchase.findOne({
+        userId,
+        courseId,
+        status: "completed",
+      });
 
-    const isPurchased = Boolean(isAlreadyPurchased(isEnrolled, completedPurchase));
+      isPurchased = Boolean(isAlreadyPurchased(isEnrolled, completedPurchase));
+    }
 
     return res.status(200).json({
       success: true,

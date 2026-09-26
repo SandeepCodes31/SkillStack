@@ -60,4 +60,30 @@ export const authorizeAdmin = async (req, res, next) => {
   }
 };
 
+export const optionalAuth = async (req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return next();
+  }
+  try {
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const rawCookie = req.cookies?.token;
+    const token =
+      (rawCookie ? decryptCookie(rawCookie) : null) ||
+      (typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+        ? authHeader.slice(7).trim()
+        : null);
+
+    if (token) {
+      const secretKey =
+        process.env.SECRET_KEY || "snjekfiejgcxkakasdfjd_skillstack_jwt_secret_2026";
+      const decode = jwt.verify(token, secretKey);
+      req.id = decode.userId;
+      req.role = decode.role;
+    }
+  } catch (error) {
+    // Guest visitor; continue smoothly without req.id
+  }
+  next();
+};
+
 export default isAuthenticated;

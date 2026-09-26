@@ -38,26 +38,7 @@ App.set("trust proxy", 1);
 // 1. Security HTTP Headers (HSTS, NoSniff, FrameGuard, XSS)
 App.use(securityHeaders);
 
-// 2. Stripe webhook requires the raw Buffer to verify HMAC signature - MUST be mounted before express.json()
-App.post(
-  "/api/v1/purchase/webhook",
-  webhookLimiter,
-  express.raw({ type: "application/json" }),
-  stripeWebhook
-);
-
-// 3. Body parsers with payload size limits to protect against memory exhaustion attacks
-App.use(express.json({ limit: "10mb" }));
-App.use(express.urlencoded({ extended: true, limit: "10mb" }));
-App.use(cookieParser());
-
-// 4. Cross-Site Request Forgery (CSRF) Protection
-App.use(csrfProtection);
-
-// 5. NoSQL Injection protection
-App.use(noSqlInjectionGuard);
-
-// 5. Environment-controlled CORS configuration
+// 2. Environment-controlled CORS configuration (mounted early so preflights & error responses carry CORS headers)
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "https://skill-stack-project.vercel.app",
@@ -84,15 +65,40 @@ App.use(
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-CSRF-Token",
+      "X-XSRF-Token",
+      "Accept",
+      "Origin",
+    ],
+    exposedHeaders: ["Set-Cookie"],
   })
 );
 
-// 6. Rate Limiting protection against DDoS and Brute Force attacks
-App.use("/api/v1", generalApiLimiter);
+// 3. Stripe webhook requires the raw Buffer to verify HMAC signature - MUST be mounted before express.json()
+App.post(
+  "/api/v1/purchase/webhook",
+  webhookLimiter,
+  express.raw({ type: "application/json" }),
+  stripeWebhook
+);
 
-// Strict rate limit on sensitive authentication routes
-App.use("/api/v1/user/login", authLimiter);
-App.use("/api/v1/user/register", authLimiter);
+// 4. Body parsers with payload size limits to protect against memory exhaustion attacks
+App.use(express.json({ limit: "10mb" }));
+App.use(express.urlencoded({ extended: true, limit: "10mb" }));
+App.use(cookieParser());
+
+// 5. Cross-Site Request Forgery (CSRF) Protection
+App.use(csrfProtection);
+
+// 6. NoSQL Injection protection
+App.use(noSqlInjectionGuard);
+
+// 7. Rate Limiting protection against DDoS and Brute Force attacks
+App.use("/api/v1", generalApiLimiter);
 
 // 7. Database Readiness Middleware (Ensures MongoDB is connected before handling API queries)
 App.use("/api/v1", async (req, res, next) => {

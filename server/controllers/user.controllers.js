@@ -92,13 +92,32 @@ export const login = async (req, res) => {
       });
     }
 
+    // Auto-promote platform admin/owner accounts if needed
+    const ownerEmails = [
+      "sandeep31@gmail.com",
+      "palsandeep8656@gmail.com",
+      "sandeepgcp31@gmail.com",
+      "sandeeppal6926@gmail.com",
+      (process.env.ADMIN_EMAIL || "").trim().toLowerCase(),
+    ].filter(Boolean);
+
+    if (ownerEmails.includes(normalizedEmail) && user.role !== "admin") {
+      user.role = "admin";
+      user.isVerified = true;
+      try {
+        await User.findByIdAndUpdate(user._id, { role: "admin", isVerified: true });
+      } catch (saveErr) {
+        console.warn("Could not auto-promote user in DB:", saveErr.message);
+      }
+    }
+
     // Role-based validation
     const isAdmin = user.role === "admin" || user.role === "instructor";
     if (role === "admin" && !isAdmin) {
       return res.status(403).json({
         success: false,
         message:
-          "Access denied. This account does not have Admin or Instructor privileges. Please switch to Student to sign in.",
+          "This account is registered with Student access. Please switch to the Student Portal tab to sign in.",
       });
     }
 
@@ -107,7 +126,7 @@ export const login = async (req, res) => {
       return res.status(403).json({
         success: false,
         message:
-          "Your account is pending verification by management. You will be contacted for further process before login is enabled.",
+          "Your account is pending verification by management. Please contact support.",
       });
     }
 

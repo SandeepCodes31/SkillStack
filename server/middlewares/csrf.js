@@ -69,9 +69,9 @@ export const csrfProtection = (req, res, next) => {
     return next();
   }
 
-  // 4. If request has Bearer authorization header and no ambient session cookie, it is an explicit client API call
+  // 4. Explicit client API calls with Bearer authorization cannot be forged via CSRF
   const hasBearer = req.headers.authorization?.startsWith("Bearer ");
-  if (hasBearer && !req.cookies?.token) {
+  if (hasBearer) {
     return next();
   }
 
