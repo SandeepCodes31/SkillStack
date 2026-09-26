@@ -7,9 +7,18 @@ import { Course } from "../models/course.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
 import { User } from "../models/user.model.js";
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 dotenv.config();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder");
+const stripeSecretKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+const stripe = new Stripe(stripeSecretKey);
+
 
 // Helper to generate unique transaction ID
 export const generateTransactionId = () => {
@@ -159,7 +168,13 @@ export const createCheckoutSession = async (req, res) => {
       });
     }
 
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const reqOrigin = req.headers.origin && !req.headers.origin.includes("null") ? req.headers.origin : null;
+    const frontendUrl = reqOrigin || process.env.FRONTEND_URL || "http://localhost:5173";
+
+    const validThumbnail =
+      typeof course.courseThumbnail === "string" && course.courseThumbnail.startsWith("https://")
+        ? [course.courseThumbnail]
+        : [];
 
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -170,7 +185,7 @@ export const createCheckoutSession = async (req, res) => {
             currency: "inr",
             product_data: {
               name: course.courseTitle,
-              images: course.courseThumbnail ? [course.courseThumbnail] : [],
+              images: validThumbnail,
               description: course.subTitle || `Course enrollment for ${course.courseTitle}`,
             },
             unit_amount: Math.round(coursePrice * 100),
@@ -325,11 +340,21 @@ export const verifyCheckoutSession = async (req, res) => {
       });
     }
 
-    // Read token if present in cookies
+    const secretKey =
+      process.env.SECRET_KEY || "snjekfiejgcxkakasdfjd_skillstack_jwt_secret_2026";
+
+    // Read token if present in cookies or Authorization header
     let userId = req.id;
-    if (!userId && req.cookies?.token) {
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const bearerToken =
+      typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+        ? authHeader.slice(7).trim()
+        : null;
+    const tokenToVerify = req.cookies?.token || bearerToken;
+
+    if (!userId && tokenToVerify) {
       try {
-        const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
+        const decoded = jwt.verify(tokenToVerify, secretKey);
         userId = decoded.userId;
       } catch (e) {
         // Token was missing or expired; will use Stripe session metadata
@@ -349,8 +374,8 @@ export const verifyCheckoutSession = async (req, res) => {
       if (!req.cookies?.token && purchase.userId?._id) {
         const token = jwt.sign(
           { userId: purchase.userId._id, role: purchase.userId.role || "student" },
-          process.env.SECRET_KEY,
-          { expiresIn: "1d" }
+          secretKey,
+          { expiresIn: "7d" }
         );
         res.cookie("token", token, {
           httpOnly: true,

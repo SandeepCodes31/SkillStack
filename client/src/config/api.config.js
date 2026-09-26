@@ -17,6 +17,7 @@ export const QUIZ_API = `${API_BASE_URL}/api/v1/quiz/`;
 export const CERTIFICATE_API = `${API_BASE_URL}/api/v1/certificate/`;
 export const STREAK_API = `${API_BASE_URL}/api/v1/streak/`;
 export const MEDIA_API = `${API_BASE_URL}/api/v1/media/`;
+export const CONTACT_API = `${API_BASE_URL}/api/v1/contact`;
 
 export const prepareAuthHeaders = (headers) => {
   if (typeof window !== "undefined") {

@@ -11,11 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Mail, Send, CheckCircle2, ShieldCheck, Sparkles, MessageSquare } from "lucide-react";
+import { Mail, Send, CheckCircle2, ShieldCheck, Sparkles, MessageSquare, Loader2 } from "lucide-react";
+import { CONTACT_API } from "@/config/api.config";
+
+const RECIPIENT_EMAIL = "sandeeppal6926@gmail.com";
 
 /**
  * Dedicated Contact Support Modal
- * Designated zone where typing is enabled (`data-contact-input="true"`)
+ * Directly delivers messages to sandeeppal6926@gmail.com
  */
 const ContactModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -34,26 +37,91 @@ const ContactModal = ({ isOpen, onClose }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) {
+    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
       toast.error("Please fill in all required fields.");
       return;
     }
 
     setIsSubmitting(true);
-    // Simulate secure transmission
-    setTimeout(() => {
+
+    try {
+      // 1. Send to SkillStack Backend Contact API (saves to MongoDB and attempts delivery)
+      const res = await fetch(`${CONTACT_API}/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          subject: formData.subject.trim(),
+          message: formData.message.trim(),
+        }),
+      });
+
+      // 2. Also dispatch directly via free FormSubmit API for direct email forwarding to sandeeppal6926@gmail.com
+      fetch(`https://formsubmit.co/ajax/${encodeURIComponent(RECIPIENT_EMAIL)}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          _subject: formData.subject.trim() || `SkillStack LMS Inquiry from ${formData.name.trim()}`,
+          message: formData.message.trim(),
+          _replyto: formData.email.trim(),
+        }),
+      }).catch((err) => console.log("FormSubmit direct note:", err));
+
+      const data = await res.json().catch(() => ({}));
+
       setIsSubmitting(false);
       setSubmitted(true);
-      toast.success("Message sent securely! Our support team will reply within 24 hours.");
+      toast.success(
+        data?.message || "Email sent, you will be contacted shortly."
+      );
+
       setTimeout(() => {
         setSubmitted(false);
         setFormData({ name: "", email: "", subject: "", message: "" });
         onClose();
-      }, 2000);
-    }, 800);
+      }, 2500);
+    } catch (err) {
+      console.error("Contact send error:", err);
+      // Fallback: direct browser dispatch to free email API
+      try {
+        await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(RECIPIENT_EMAIL)}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            _subject: formData.subject.trim() || "SkillStack Contact Inquiry",
+            message: formData.message.trim(),
+          }),
+        });
+        setIsSubmitting(false);
+        setSubmitted(true);
+        toast.success("Email sent, you will be contacted shortly.");
+        setTimeout(() => {
+          setSubmitted(false);
+          setFormData({ name: "", email: "", subject: "", message: "" });
+          onClose();
+        }, 2500);
+      } catch (fallbackErr) {
+        setIsSubmitting(false);
+        toast.error("Could not send message. Please try again later.");
+      }
+    }
   };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose} modal={false}>
@@ -72,7 +140,7 @@ const ContactModal = ({ isOpen, onClose }) => {
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
-            Have a question, feedback, or need course assistance? Reach out to our team.
+            Have a question, feedback, or need assistance? Send us a message and our support team will get back to you shortly.
           </DialogDescription>
         </DialogHeader>
 
@@ -82,10 +150,10 @@ const ContactModal = ({ isOpen, onClose }) => {
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              Message Received!
+              Email Sent
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-              Your inquiry has been encrypted and delivered to the SkillStack support desk.
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+              Email sent, you will be contacted shortly.
             </p>
           </div>
         ) : (
@@ -93,7 +161,7 @@ const ContactModal = ({ isOpen, onClose }) => {
             {/* Security Notice */}
             <div className="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/50 flex items-center gap-2 text-emerald-800 dark:text-emerald-300 text-[11px] font-medium">
               <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span>Keypad unlocked for this Contact section. Messages are encrypted.</span>
+              <span>Direct secure communication with our support team</span>
             </div>
 
             {/* Name Input */}
@@ -187,7 +255,10 @@ const ContactModal = ({ isOpen, onClose }) => {
                 className="h-9 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold gap-2 cursor-pointer shadow-md"
               >
                 {isSubmitting ? (
-                  <span>Sending...</span>
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Sending message...</span>
+                  </>
                 ) : (
                   <>
                     <Send className="w-3.5 h-3.5" />

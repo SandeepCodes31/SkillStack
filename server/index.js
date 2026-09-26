@@ -11,6 +11,7 @@ import courseProgressRoute from "./routes/courseProgress.route.js";
 import quizRoute from "./routes/quiz.route.js";
 import certificateRoute from "./routes/certificate.route.js";
 import streakRoute from "./routes/streak.route.js";
+import contactRoute from "./routes/contact.route.js";
 import { stripeWebhook } from "./controllers/coursePurchase.controller.js";
 import {
   securityHeaders,
@@ -109,6 +110,7 @@ App.use("/api/v1/progress", courseProgressRoute);
 App.use("/api/v1/quiz", quizRoute);
 App.use("/api/v1/certificate", certificateRoute);
 App.use("/api/v1/streak", streakRoute);
+App.use("/api/v1/contact", contactRoute);
 
 // Root & API health check endpoints
 const healthHandler = (req, res) => {
