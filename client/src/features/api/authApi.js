@@ -1,10 +1,14 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { userLoggedIn, userLoggedOut } from "../authSlice";
-import { USER_API } from "@/config/api.config";
+import { USER_API, prepareAuthHeaders } from "@/config/api.config";
 
 export const authApi = createApi({
   reducerPath: "authApi",
-  baseQuery: fetchBaseQuery({ baseUrl: USER_API, credentials: "include" }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: USER_API,
+    credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
+  }),
   tagTypes: ["User"],
   endpoints: (builder) => ({
     registerUser: builder.mutation({
@@ -24,9 +28,14 @@ export const authApi = createApi({
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
-          dispatch(userLoggedIn({ user: result.data.user }));
+          if (result?.data?.token) {
+            localStorage.setItem("token", result.data.token);
+          }
+          if (result?.data?.user) {
+            dispatch(userLoggedIn({ user: result.data.user }));
+          }
         } catch (error) {
-          console.log(error);
+          console.log("Login error in slice:", error);
         }
       },
     }),
@@ -38,9 +47,10 @@ export const authApi = createApi({
       invalidatesTags: ["User"],
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
         try {
+          localStorage.removeItem("token");
           dispatch(userLoggedOut({ user: null }));
         } catch (error) {
-          console.log(error);
+          console.log("Logout error:", error);
         }
       },
     }),
@@ -53,8 +63,11 @@ export const authApi = createApi({
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
-          dispatch(userLoggedIn({ user: result.data.user }));
+          if (result?.data?.user) {
+            dispatch(userLoggedIn({ user: result.data.user }));
+          }
         } catch (error) {
+          localStorage.removeItem("token");
           dispatch(userLoggedOut());
         }
       },

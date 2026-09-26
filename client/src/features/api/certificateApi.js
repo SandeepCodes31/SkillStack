@@ -1,11 +1,12 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { CERTIFICATE_API } from "@/config/api.config";
+import { CERTIFICATE_API, prepareAuthHeaders } from "@/config/api.config";
 
 export const certificateApi = createApi({
   reducerPath: "certificateApi",
   baseQuery: fetchBaseQuery({
     baseUrl: CERTIFICATE_API,
     credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
   }),
   tagTypes: ["Certificate"],
   endpoints: (builder) => ({

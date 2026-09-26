@@ -11,7 +11,7 @@ const rateLimitStore = new Map();
 /**
  * Clean up old rate limit entries every 10 minutes to prevent memory leaks
  */
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, record] of rateLimitStore.entries()) {
     if (now > record.resetTime) {
@@ -19,6 +19,9 @@ setInterval(() => {
     }
   }
 }, 10 * 60 * 1000);
+if (cleanupTimer && cleanupTimer.unref) {
+  cleanupTimer.unref();
+}
 
 /**
  * Configurable Rate Limiter Middleware
@@ -77,8 +80,8 @@ export const rateLimiter = ({
  */
 export const authRateLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 30,
-  message: "Too many authentication attempts. Please wait 15 minutes before trying again.",
+  max: 120,
+  message: "Too many authentication attempts. Please wait a few minutes before trying again.",
 });
 
 /**

@@ -25,25 +25,43 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import os from "os";
 
-const uploadDir = path.join(process.cwd(), "uploads");
+// In serverless environments (AWS Lambda / Vercel), process.cwd() is read-only.
+// Use os.tmpdir() which maps to /tmp (writable in serverless).
+const uploadDir = path.join(os.tmpdir(), "skillstack_uploads");
 
-//  ensure uploads folder exists
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn("Notice: could not create uploads directory at startup:", err.message);
 }
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir); 
+    try {
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    } catch (err) {
+      cb(err, uploadDir);
+    }
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+    const safeName = (file.originalname || "file").replace(/[^a-zA-Z0-9.-]/g, "_");
+    cb(null, `${Date.now()}-${safeName}`);
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
 
 export default upload;
+
 
 

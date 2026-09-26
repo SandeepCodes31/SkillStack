@@ -1,12 +1,13 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { streakApi } from "./streakApi";
-import { QUIZ_API } from "@/config/api.config";
+import { QUIZ_API, prepareAuthHeaders } from "@/config/api.config";
 
 export const quizApi = createApi({
   reducerPath: "quizApi",
   baseQuery: fetchBaseQuery({
     baseUrl: QUIZ_API,
     credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
   }),
   tagTypes: ["Quiz", "Attempt"],
   endpoints: (builder) => ({

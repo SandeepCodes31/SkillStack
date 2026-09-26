@@ -7,10 +7,16 @@ const isAuthenticated = async (req, res, next) => {
     return next();
   }
   try {
-    const token = req.cookies.token;
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const token =
+      req.cookies?.token ||
+      (typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+        ? authHeader.slice(7).trim()
+        : null);
+
     if (!token) {
       return res.status(401).json({
-        message: "User not Authenticated",
+        message: "User not authenticated. Please log in.",
         success: false,
       });
     }
@@ -24,7 +30,7 @@ const isAuthenticated = async (req, res, next) => {
     console.log("AUTH ERROR:", error.message);
     return res.status(401).json({
       success: false,
-      message: "Invalid or expired token",
+      message: "Invalid or expired session. Please log in again.",
     });
   }
 };

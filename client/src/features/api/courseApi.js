@@ -1,7 +1,7 @@
 // import CreateLecture from "@/pages/admin/lecture/CreateLecture";
 import EditLecture from "@/pages/admin/lecture/EditLecture";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { COURSE_API } from "@/config/api.config";
+import { COURSE_API, prepareAuthHeaders } from "@/config/api.config";
 
 export const courseApi = createApi({
   reducerPath: "courseApi",
@@ -9,6 +9,7 @@ export const courseApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: COURSE_API,
     credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
   }),
   endpoints: (builder) => ({
     createCourse: builder.mutation({

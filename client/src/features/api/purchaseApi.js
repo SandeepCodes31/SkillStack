@@ -1,11 +1,12 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { COURSE_PURCHASE_API } from "@/config/api.config";
+import { COURSE_PURCHASE_API, prepareAuthHeaders } from "@/config/api.config";
 
 export const purchaseApi = createApi({
   reducerPath: "purchaseApi",
   baseQuery: fetchBaseQuery({
     baseUrl: COURSE_PURCHASE_API,
     credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
   }),
   tagTypes: ["Purchases", "CourseDetail"],
   endpoints: (builder) => ({

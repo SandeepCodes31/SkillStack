@@ -1,12 +1,13 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { streakApi } from "./streakApi";
-import { COURSE_PROGRESS_API } from "@/config/api.config";
+import { COURSE_PROGRESS_API, prepareAuthHeaders } from "@/config/api.config";
 
 export const courseProgressApi = createApi({
   reducerPath: "courseProgressApi",
   baseQuery: fetchBaseQuery({
     baseUrl: COURSE_PROGRESS_API,
     credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
   }),
   endpoints: (builder) => ({
     getCourseProgress: builder.query({

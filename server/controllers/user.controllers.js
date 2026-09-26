@@ -15,7 +15,11 @@ export const register = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await User.findOne({
+      $or: [{ email: normalizedEmail }, { email: email.trim() }],
+    });
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -27,8 +31,8 @@ export const register = async (req, res) => {
     const isAdminRegistration = role === "admin" || role === "instructor";
 
     await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: normalizedEmail,
       password: hashedPassword,
       role: isAdminRegistration ? "admin" : "student",
       isVerified: true,
@@ -47,9 +51,10 @@ export const register = async (req, res) => {
       message: "User registered successfully! Please log in.",
     });
   } catch (error) {
+    console.error("Registration error:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to register",
+      message: error?.message || "Failed to register",
     });
   }
 };
@@ -64,7 +69,12 @@ export const login = async (req, res) => {
         message: "All fields are required",
       });
     }
-    const user = await User.findOne({ email });
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({
+      $or: [{ email: normalizedEmail }, { email: email.trim() }],
+    });
+
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -101,10 +111,10 @@ export const login = async (req, res) => {
 
     return generateToken(res, user, `Welcome back ${user.name}`);
   } catch (error) {
+    console.error("Login error:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to login",
-      error: error.message,
+      message: error?.message || "Failed to login",
     });
   }
 };

@@ -86,7 +86,21 @@ App.use("/api/v1", generalApiLimiter);
 App.use("/api/v1/user/login", authRateLimiter);
 App.use("/api/v1/user/register", authRateLimiter);
 
-// 7. API Routes
+// 7. Database Readiness Middleware (Ensures MongoDB is connected before handling API queries)
+App.use("/api/v1", async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("DB connection error in request lifecycle:", err);
+    return res.status(503).json({
+      success: false,
+      message: "Database connection temporarily unavailable. Please try again shortly.",
+    });
+  }
+});
+
+// 8. API Routes
 App.use("/api/v1/media", mediaRoute);
 App.use("/api/v1/user", userRoute);
 App.use("/api/v1/course", courseRoute);
@@ -96,16 +110,41 @@ App.use("/api/v1/quiz", quizRoute);
 App.use("/api/v1/certificate", certificateRoute);
 App.use("/api/v1/streak", streakRoute);
 
-// Root health check endpoint
-App.get("/health", (req, res) => {
-  res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
+// Root & API health check endpoints
+const healthHandler = (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+  });
+};
+App.get("/health", healthHandler);
+App.get("/api/health", healthHandler);
+App.get("/api/v1/health", healthHandler);
+
+// 9. Global Error Handling Middleware
+App.use((err, req, res, next) => {
+  console.error("Unhandled Error in API Lifecycle:", err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  return res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal server error occurred",
+  });
 });
 
 // Export App for serverless deployment (Vercel) and listen in local development
-if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
+if (
+  process.env.NODE_ENV !== "test" &&
+  !process.env.VERCEL &&
+  !process.env.AWS_LAMBDA_FUNCTION_NAME
+) {
   App.listen(PORT, () => {
     console.log(`Server is running securely on port ${PORT}`);
   });
 }
 
 export default App;
+
