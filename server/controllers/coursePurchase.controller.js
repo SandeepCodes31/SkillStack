@@ -411,20 +411,6 @@ export const verifyCheckoutSession = async (req, res) => {
       .populate("userId", "name email role");
 
     if (purchase && purchase.status === "completed") {
-      // Re-establish session cookie if missing due to cross-site navigation
-      if (!req.cookies?.token && purchase.userId?._id) {
-        const token = jwt.sign(
-          { userId: purchase.userId._id, role: purchase.userId.role || "student" },
-          secretKey,
-          { expiresIn: "7d" }
-        );
-        res.cookie("token", token, {
-          httpOnly: true,
-          sameSite: "lax",
-          maxAge: 24 * 60 * 60 * 1000,
-        });
-      }
-
       return res.status(200).json({
         success: true,
         status: "completed",

@@ -16,9 +16,12 @@ import { stripeWebhook } from "./controllers/coursePurchase.controller.js";
 import {
   securityHeaders,
   noSqlInjectionGuard,
-  authRateLimiter,
-  rateLimiter,
 } from "./middlewares/security.js";
+import {
+  generalApiLimiter,
+  authLimiter,
+} from "./middlewares/rateLimiter.js";
+import csrfProtection from "./middlewares/csrf.js";
 
 dotenv.config({});
 
@@ -27,6 +30,9 @@ connectDB().catch((err) => console.warn("MongoDB initial connection notice:", er
 
 const App = express();
 const PORT = process.env.PORT || 8080;
+
+// Trust reverse proxy (Vercel, AWS ALB, Render) for accurate client IP in rate limiting
+App.set("trust proxy", 1);
 
 // 1. Security HTTP Headers (HSTS, NoSniff, FrameGuard, XSS)
 App.use(securityHeaders);
@@ -43,7 +49,10 @@ App.use(express.json({ limit: "10mb" }));
 App.use(express.urlencoded({ extended: true, limit: "10mb" }));
 App.use(cookieParser());
 
-// 4. NoSQL Injection protection
+// 4. Cross-Site Request Forgery (CSRF) Protection
+App.use(csrfProtection);
+
+// 5. NoSQL Injection protection
 App.use(noSqlInjectionGuard);
 
 // 5. Environment-controlled CORS configuration
@@ -77,16 +86,11 @@ App.use(
 );
 
 // 6. Rate Limiting protection against DDoS and Brute Force attacks
-const generalApiLimiter = rateLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 500,
-  message: "Too many requests to SkillStack API. Please try again shortly.",
-});
 App.use("/api/v1", generalApiLimiter);
 
 // Strict rate limit on sensitive authentication routes
-App.use("/api/v1/user/login", authRateLimiter);
-App.use("/api/v1/user/register", authRateLimiter);
+App.use("/api/v1/user/login", authLimiter);
+App.use("/api/v1/user/register", authLimiter);
 
 // 7. Database Readiness Middleware (Ensures MongoDB is connected before handling API queries)
 App.use("/api/v1", async (req, res, next) => {

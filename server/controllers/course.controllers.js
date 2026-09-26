@@ -237,16 +237,16 @@ export const editCourse = async (req, res) => {
       courseThumbnail = await uploadMedia(thumbnail.path);
     }
 
-    const updateData = {
-      courseTitle,
-      subTitle,
-      description,
-      category,
-      courseLevel,
-      coursePrice,
-      courseThumbnail: courseThumbnail?.secure_url,
-    };
-    course = await Course.findByIdAndUpdate(courseId, updateData, {
+    const safeUpdate = {};
+    if (typeof courseTitle === "string") safeUpdate.courseTitle = courseTitle.trim();
+    if (typeof subTitle === "string") safeUpdate.subTitle = subTitle.trim();
+    if (typeof description === "string") safeUpdate.description = description;
+    if (typeof category === "string") safeUpdate.category = category.trim();
+    if (typeof courseLevel === "string") safeUpdate.courseLevel = courseLevel.trim();
+    if (coursePrice !== undefined) safeUpdate.coursePrice = Number(coursePrice) || 0;
+    if (courseThumbnail?.secure_url) safeUpdate.courseThumbnail = String(courseThumbnail.secure_url);
+
+    course = await Course.findByIdAndUpdate(String(courseId), safeUpdate, {
       new: true,
     });
 

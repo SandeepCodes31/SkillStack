@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
+import { decryptCookie } from "../utils/generateToken.js";
 
 const isAuthenticated = async (req, res, next) => {
   // ✅ allow CORS preflight to pass
@@ -8,8 +9,9 @@ const isAuthenticated = async (req, res, next) => {
   }
   try {
     const authHeader = req.headers.authorization || req.headers.Authorization;
+    const rawCookie = req.cookies?.token;
     const token =
-      req.cookies?.token ||
+      (rawCookie ? decryptCookie(rawCookie) : null) ||
       (typeof authHeader === "string" && authHeader.startsWith("Bearer ")
         ? authHeader.slice(7).trim()
         : null);

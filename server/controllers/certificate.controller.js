@@ -32,11 +32,14 @@ export const getMyCertificates = async (req, res) => {
  */
 export const getCertificateById = async (req, res) => {
   try {
-    const { certificateId } = req.params;
+    const id = String(req.params.id || req.params.certificateId || "").trim();
+    if (!id || id.length > 100) {
+      return res.status(400).json({ success: false, message: "Valid certificate identifier is required." });
+    }
     const userId = req.id;
     const userRole = req.role;
 
-    const certificate = await Certificate.findOne({ certificateId })
+    const certificate = await Certificate.findOne({ certificateId: id })
       .populate("courseId", "courseTitle category creator");
 
     if (!certificate) {
@@ -111,11 +114,14 @@ export const verifyCertificate = async (req, res) => {
  */
 export const downloadCertificatePdf = async (req, res) => {
   try {
-    const { certificateId } = req.params;
+    const id = String(req.params.id || req.params.certificateId || "").trim();
+    if (!id || id.length > 100) {
+      return res.status(400).json({ success: false, message: "Valid certificate identifier is required." });
+    }
     const userId = req.id;
     const userRole = req.role;
 
-    const certificate = await Certificate.findOne({ certificateId });
+    const certificate = await Certificate.findOne({ certificateId: id });
     if (!certificate) {
       return res.status(404).json({ success: false, message: "Certificate not found." });
     }

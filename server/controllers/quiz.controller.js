@@ -645,9 +645,29 @@ export const updateQuiz = async (req, res) => {
     if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
       return res.status(400).json({ success: false, message: "Valid Assessment ID is required." });
     }
-    const updateData = req.body;
+    const allowedFields = [
+      "title",
+      "description",
+      "duration",
+      "passingPercentage",
+      "maxAttempts",
+      "randomizeQuestions",
+      "randomizeOptions",
+      "isPublished",
+      "questions",
+    ];
+    const safeUpdate = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        safeUpdate[field] = req.body[field];
+      }
+    }
+    if (typeof safeUpdate.title === "string") safeUpdate.title = safeUpdate.title.trim();
+    if (safeUpdate.duration !== undefined) safeUpdate.duration = Number(safeUpdate.duration) || 0;
+    if (safeUpdate.passingPercentage !== undefined) safeUpdate.passingPercentage = Number(safeUpdate.passingPercentage) || 0;
+    if (safeUpdate.maxAttempts !== undefined) safeUpdate.maxAttempts = Number(safeUpdate.maxAttempts) || 1;
 
-    const quiz = await Quiz.findByIdAndUpdate(quizId, updateData, { new: true });
+    const quiz = await Quiz.findByIdAndUpdate(String(quizId), safeUpdate, { new: true });
     if (!quiz) {
       return res.status(404).json({ success: false, message: "Assessment not found." });
     }

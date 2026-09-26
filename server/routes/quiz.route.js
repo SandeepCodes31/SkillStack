@@ -15,8 +15,13 @@ import {
   deleteQuestion,
   getQuizAnalytics,
 } from "../controllers/quiz.controller.js";
+import {
+  generalApiLimiter,
+  sensitiveLimiter,
+} from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
+router.use(generalApiLimiter);
 
 // Student Endpoints
 router.route("/course/:courseId").get(isAuthenticated, getCourseQuiz);

@@ -11,10 +11,15 @@ import {
   stripeWebhook,
   verifyCheckoutSession,
 } from "../controllers/coursePurchase.controller.js";
+import {
+  generalApiLimiter,
+  sensitiveLimiter,
+} from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
+router.use(generalApiLimiter);
 
-router.route("/checkout/create-checkout-session").post(isAuthenticated, createCheckoutSession);
+router.route("/checkout/create-checkout-session").post(sensitiveLimiter, isAuthenticated, createCheckoutSession);
 router.route("/webhook").post(express.raw({ type: "application/json" }), stripeWebhook);
 router.route("/verify-session/:sessionId").get(verifyCheckoutSession);
 router.route("/course/:courseId/detail-with-status").get(isAuthenticated, getCourseDetailWithPurchaseStatus);

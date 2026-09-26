@@ -1,8 +1,10 @@
 import express from "express"
 import isAuthenticated from "../middlewares/isAuthenticated.js";
 import { getCourseProgress, markAsCompleted, markAsInCompleted, updateLectureProgress } from "../controllers/courseProgress.controller.js";
+import { generalApiLimiter } from "../middlewares/rateLimiter.js";
 
-const router = express.Router()
+const router = express.Router();
+router.use(generalApiLimiter);
 
 router.route("/:courseId").get(isAuthenticated, getCourseProgress);
 router.route("/:courseId/lecture/:lectureId/view").post(isAuthenticated, updateLectureProgress);

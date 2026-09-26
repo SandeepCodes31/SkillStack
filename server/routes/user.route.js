@@ -8,15 +8,22 @@ import {
 } from "../controllers/user.controllers.js";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
 import upload from "../utils/multer.js";
+import {
+  generalApiLimiter,
+  authLimiter,
+  sensitiveLimiter,
+} from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
-router.route("/register").post(register);
-router.route("/login").post(login);
+
+router.use(generalApiLimiter);
+
+router.route("/register").post(authLimiter, register);
+router.route("/login").post(authLimiter, login);
 router.route("/logout").get(logout);
 router.route("/profile").get(isAuthenticated, getUserProfile);
-// router.route("/profile/update").put(isAuthenticated, upload.fields([{ name: 'name' }, { name: 'profilePhoto' }]), updateProfile);
 router
   .route("/profile/update")
-  .put(isAuthenticated, upload.single("profilePhoto"), updateProfile);
+  .put(sensitiveLimiter, isAuthenticated, upload.single("profilePhoto"), updateProfile);
 
 export default router;

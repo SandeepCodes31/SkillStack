@@ -7,8 +7,10 @@ import {
   getMyStats,
   getAdminAnalytics,
 } from "../controllers/streak.controller.js";
+import { generalApiLimiter } from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
+router.use(generalApiLimiter);
 
 // Student Streak & Badge Endpoints
 router.route("/my").get(isAuthenticated, getMyStreak);

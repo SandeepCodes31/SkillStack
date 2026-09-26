@@ -4,9 +4,10 @@ import path from "path";
 import upload from "../utils/multer.js";
 import { uploadMedia } from "../utils/cloudinary.js";
 import isAuthenticated, { authorizeAdmin } from "../middlewares/isAuthenticated.js";
-import { authRateLimiter } from "../middlewares/security.js";
+import { uploadLimiter } from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
+router.use(uploadLimiter);
 
 // Safe helper to delete uploaded file within the designated uploads folder
 const safeUnlink = (rawFilePath) => {
@@ -25,7 +26,7 @@ const safeUnlink = (rawFilePath) => {
   }
 };
 
-router.route("/upload-video").post(authRateLimiter, isAuthenticated, authorizeAdmin, upload.single("file"), async (req, res) => {
+router.route("/upload-video").post(uploadLimiter, isAuthenticated, authorizeAdmin, upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
