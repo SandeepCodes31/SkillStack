@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Certificate } from "../models/certificate.model.js";
 import { Course } from "../models/course.model.js";
 import { User } from "../models/user.model.js";
@@ -26,20 +27,24 @@ export const getMyCertificates = async (req, res) => {
 };
 
 /**
- * GET /api/v1/certificate/:certificateId
+ * GET /api/v1/certificate/:id
  * Retrieves certificate metadata.
  * Security: Accessible only by certificate owner or admin.
  */
 export const getCertificateById = async (req, res) => {
   try {
-    const id = String(req.params.id || req.params.certificateId || "").trim();
+    const id = String(req.params.id || "").trim();
     if (!id || id.length > 100) {
       return res.status(400).json({ success: false, message: "Valid certificate identifier is required." });
     }
     const userId = req.id;
     const userRole = req.role;
 
-    const certificate = await Certificate.findOne({ certificateId: id })
+    const query = mongoose.Types.ObjectId.isValid(id)
+      ? { $or: [{ _id: id }, { certificateId: id }] }
+      : { certificateId: id };
+
+    const certificate = await Certificate.findOne(query)
       .populate("courseId", "courseTitle category creator");
 
     if (!certificate) {
@@ -109,19 +114,23 @@ export const verifyCertificate = async (req, res) => {
 };
 
 /**
- * GET /api/v1/certificate/:certificateId/pdf
+ * GET /api/v1/certificate/:id/pdf
  * Streams high-resolution PDF certificate with embedded QR verification code.
  */
 export const downloadCertificatePdf = async (req, res) => {
   try {
-    const id = String(req.params.id || req.params.certificateId || "").trim();
+    const id = String(req.params.id || "").trim();
     if (!id || id.length > 100) {
       return res.status(400).json({ success: false, message: "Valid certificate identifier is required." });
     }
     const userId = req.id;
     const userRole = req.role;
 
-    const certificate = await Certificate.findOne({ certificateId: id });
+    const query = mongoose.Types.ObjectId.isValid(id)
+      ? { $or: [{ _id: id }, { certificateId: id }] }
+      : { certificateId: id };
+
+    const certificate = await Certificate.findOne(query);
     if (!certificate) {
       return res.status(404).json({ success: false, message: "Certificate not found." });
     }

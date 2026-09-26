@@ -1,11 +1,16 @@
+import crypto from "crypto";
+
 /**
  * Robust CSRF Protection Middleware for SkillStack LMS
  *
- * Protects state-changing requests (POST, PUT, PATCH, DELETE) against Cross-Site Request Forgery.
- * - Idempotent methods (GET, HEAD, OPTIONS) are exempt.
- * - Stripe webhook (/api/v1/purchase/webhook) uses cryptographic signature verification and is exempt.
- * - Public auth routes (/login, /register) are exempt because session cookies do not yet exist.
- * - Validates Origin/Referer headers against configured allowed domains for cookie-authenticated requests.
+ * Implements defense-in-depth Cross-Site Request Forgery mitigation:
+ * 1. Generates and sets secure CSRF token cookies ('XSRF-TOKEN' and 'csrfToken').
+ * 2. Idempotent safe methods (GET, HEAD, OPTIONS) are exempt from token verification.
+ * 3. Stripe webhooks (/api/v1/purchase/webhook) use cryptographic HMAC signatures and are exempt.
+ * 4. Public auth routes (/login, /register) are exempt because session cookies do not yet exist.
+ * 5. Explicit API calls with Bearer authorization and without session cookies are exempt.
+ * 6. Validates Origin/Referer headers against configured allowed domains for cookie-authenticated requests.
+ * 7. Validates CSRF tokens using timing-safe comparison when client sends headers.
  */
 
 const ALLOWED_ORIGINS = [
@@ -18,6 +23,29 @@ const ALLOWED_ORIGINS = [
 ].filter(Boolean);
 
 export const csrfProtection = (req, res, next) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // Ensure CSRF token cookie is set for client consumption
+  const existingCookieToken = req.cookies?.csrfToken || req.cookies?.["XSRF-TOKEN"];
+  if (!existingCookieToken) {
+    const newCsrfToken = crypto.randomBytes(32).toString("hex");
+    res.cookie("XSRF-TOKEN", newCsrfToken, {
+      httpOnly: false, // Accessible by frontend scripts to read and forward in headers
+      sameSite: "lax",
+      secure: isProduction,
+      path: "/",
+    });
+    res.cookie("csrfToken", newCsrfToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProduction,
+      path: "/",
+    });
+    res.locals.csrfToken = newCsrfToken;
+  } else {
+    res.locals.csrfToken = existingCookieToken;
+  }
+
   // 1. Safe HTTP methods do not alter state
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
     return next();
@@ -41,13 +69,13 @@ export const csrfProtection = (req, res, next) => {
     return next();
   }
 
-  // 4. If request has Bearer authorization header, it is an explicit client API call
+  // 4. If request has Bearer authorization header and no ambient session cookie, it is an explicit client API call
   const hasBearer = req.headers.authorization?.startsWith("Bearer ");
   if (hasBearer && !req.cookies?.token) {
     return next();
   }
 
-  // 5. For browser requests using ambient session cookies, verify request origin
+  // 5. For browser requests using ambient session cookies, perform CSRF validation
   if (req.cookies?.token) {
     const rawOrigin =
       req.headers["origin"] ||
@@ -55,7 +83,7 @@ export const csrfProtection = (req, res, next) => {
 
     if (!rawOrigin) {
       // In non-production, permit tools without origin headers (e.g. Postman, curl, tests)
-      if (process.env.NODE_ENV !== "production") {
+      if (!isProduction) {
         return next();
       }
       return res.status(403).json({
@@ -75,6 +103,28 @@ export const csrfProtection = (req, res, next) => {
         success: false,
         message: "CSRF verification failed: Untrusted request origin.",
       });
+    }
+
+    // Token comparison if provided by client header
+    const cookieCsrfToken = req.cookies?.csrfToken || req.cookies?.["XSRF-TOKEN"];
+    const clientCsrfToken =
+      req.headers["x-csrf-token"] ||
+      req.headers["x-xsrf-token"] ||
+      req.body?._csrf;
+
+    if (cookieCsrfToken && clientCsrfToken) {
+      const isValid =
+        Buffer.byteLength(cookieCsrfToken) === Buffer.byteLength(clientCsrfToken) &&
+        crypto.timingSafeEqual(
+          Buffer.from(cookieCsrfToken),
+          Buffer.from(clientCsrfToken)
+        );
+      if (!isValid) {
+        return res.status(403).json({
+          success: false,
+          message: "CSRF verification failed: Invalid CSRF token.",
+        });
+      }
     }
   }
 

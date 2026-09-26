@@ -68,3 +68,15 @@ export const contactLimiter = rateLimit({
     message: "Too many contact messages submitted. Please try again in 15 minutes.",
   },
 });
+
+// 6. Webhook Limiter (generous limit for Stripe webhooks to prevent resource exhaustion while accommodating high volume)
+export const webhookLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 1000,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Webhook rate limit exceeded. Please try again shortly.",
+  },
+});

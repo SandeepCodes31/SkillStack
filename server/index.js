@@ -20,6 +20,7 @@ import {
 import {
   generalApiLimiter,
   authLimiter,
+  webhookLimiter,
 } from "./middlewares/rateLimiter.js";
 import csrfProtection from "./middlewares/csrf.js";
 
@@ -40,6 +41,7 @@ App.use(securityHeaders);
 // 2. Stripe webhook requires the raw Buffer to verify HMAC signature - MUST be mounted before express.json()
 App.post(
   "/api/v1/purchase/webhook",
+  webhookLimiter,
   express.raw({ type: "application/json" }),
   stripeWebhook
 );

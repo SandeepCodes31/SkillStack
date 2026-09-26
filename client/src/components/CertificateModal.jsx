@@ -15,9 +15,13 @@ import { toast } from "sonner";
 export const handleDownloadCertificatePdf = async (certificateId, setDownloading) => {
   try {
     if (setDownloading) setDownloading(true);
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     const response = await fetch(
       `${API_BASE_URL}/api/v1/certificate/${certificateId}/pdf`,
-      { credentials: "include" }
+      {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
     );
     if (!response.ok) {
       throw new Error("Failed to generate certificate PDF.");

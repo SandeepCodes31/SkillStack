@@ -1,4 +1,10 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+// Ensure IPv4 resolution takes precedence to prevent MongoDB Atlas replica monitor timeouts on Windows
+try {
+  dns.setDefaultResultOrder("ipv4first");
+} catch {}
 
 let cached = global._mongoConn;
 if (!cached) {

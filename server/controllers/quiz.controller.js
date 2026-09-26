@@ -645,29 +645,50 @@ export const updateQuiz = async (req, res) => {
     if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
       return res.status(400).json({ success: false, message: "Valid Assessment ID is required." });
     }
-    const allowedFields = [
-      "title",
-      "description",
-      "duration",
-      "passingPercentage",
-      "maxAttempts",
-      "randomizeQuestions",
-      "randomizeOptions",
-      "isPublished",
-      "questions",
-    ];
-    const safeUpdate = {};
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        safeUpdate[field] = req.body[field];
-      }
-    }
-    if (typeof safeUpdate.title === "string") safeUpdate.title = safeUpdate.title.trim();
-    if (safeUpdate.duration !== undefined) safeUpdate.duration = Number(safeUpdate.duration) || 0;
-    if (safeUpdate.passingPercentage !== undefined) safeUpdate.passingPercentage = Number(safeUpdate.passingPercentage) || 0;
-    if (safeUpdate.maxAttempts !== undefined) safeUpdate.maxAttempts = Number(safeUpdate.maxAttempts) || 1;
 
-    const quiz = await Quiz.findByIdAndUpdate(String(quizId), safeUpdate, { new: true });
+    const updateDoc = {};
+    if (typeof req.body.title === "string") {
+      updateDoc.title = req.body.title.trim();
+    }
+    if (typeof req.body.description === "string") {
+      updateDoc.description = req.body.description.trim();
+    }
+    if (req.body.duration !== undefined) {
+      updateDoc.duration = Math.max(1, Number(req.body.duration) || 20);
+    }
+    if (req.body.passingPercentage !== undefined) {
+      updateDoc.passingPercentage = Math.min(100, Math.max(0, Number(req.body.passingPercentage) || 60));
+    }
+    if (req.body.maxAttempts !== undefined) {
+      updateDoc.maxAttempts = Math.max(1, Number(req.body.maxAttempts) || 3);
+    }
+    if (req.body.randomizeQuestions !== undefined) {
+      updateDoc.randomizeQuestions = Boolean(req.body.randomizeQuestions);
+    }
+    if (req.body.randomizeOptions !== undefined) {
+      updateDoc.randomizeOptions = Boolean(req.body.randomizeOptions);
+    }
+    if (req.body.isPublished !== undefined) {
+      updateDoc.isPublished = Boolean(req.body.isPublished);
+    }
+
+    if (Array.isArray(req.body.questions)) {
+      updateDoc.questions = req.body.questions.map((q) => ({
+        question: typeof q.question === "string" ? q.question.trim() : "",
+        options: Array.isArray(q.options)
+          ? q.options.map((opt) => String(opt || "").trim())
+          : [],
+        correctAnswer: Number(q.correctAnswer) || 0,
+        explanation: typeof q.explanation === "string" ? q.explanation.trim() : "",
+        points: Number(q.points) || 1,
+      }));
+    }
+
+    const quiz = await Quiz.findByIdAndUpdate(
+      quizId,
+      { $set: updateDoc },
+      { returnDocument: "after", runValidators: true }
+    );
     if (!quiz) {
       return res.status(404).json({ success: false, message: "Assessment not found." });
     }

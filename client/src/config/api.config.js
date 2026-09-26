@@ -25,6 +25,11 @@ export const prepareAuthHeaders = (headers) => {
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }
+    // Forward CSRF token if cookie is set
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+    if (match) {
+      headers.set("X-CSRF-Token", decodeURIComponent(match[1]));
+    }
   }
   return headers;
 };
