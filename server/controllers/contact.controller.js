@@ -1,4 +1,3 @@
-import nodemailer from "nodemailer";
 import { Contact } from "../models/contact.model.js";
 
 const DEFAULT_RECIPIENT = "sandeeppal6926@gmail.com";
@@ -39,6 +38,8 @@ export const sendContactMessage = async (req, res) => {
 
     if (smtpUser && smtpPass) {
       try {
+        const nodemailerModule = await import("nodemailer");
+        const nodemailer = nodemailerModule.default || nodemailerModule;
         const transporter = nodemailer.createTransport({
           service: process.env.SMTP_SERVICE || "gmail",
           auth: {
