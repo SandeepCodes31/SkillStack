@@ -23,7 +23,7 @@ import {
 dotenv.config({});
 
 // Database connection
-connectDB();
+connectDB().catch((err) => console.warn("MongoDB initial connection notice:", err.message));
 
 const App = express();
 const PORT = process.env.PORT || 8080;

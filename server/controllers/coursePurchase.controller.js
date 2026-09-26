@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 dotenv.config();
 
-const stripeSecretKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+const stripeSecretKey = (process.env.STRIPE_SECRET_KEY || "dummy_api_key_for_stripe_init").trim();
 const stripe = new Stripe(stripeSecretKey);
 
 
