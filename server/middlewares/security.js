@@ -131,6 +131,10 @@ export const sanitizeInPlace = (obj) => {
   }
 
   for (const key of Object.keys(obj)) {
+    if (key === "__proto__" || key === "constructor" || key === "prototype") {
+      delete obj[key];
+      continue;
+    }
     // Strip keys starting with '$' or containing '.'
     if (key.startsWith("$") || key.includes(".")) {
       delete obj[key];

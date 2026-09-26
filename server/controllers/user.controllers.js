@@ -1,5 +1,7 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
+import fs from "fs";
+import path from "path";
 import { generateToken } from "../utils/generateToken.js";
 // import { useReducer } from "react";
 import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
@@ -249,10 +251,19 @@ export const updateProfile = async (req, res) => {
         const publicId = user.photoURL.split("/").pop().split(".")[0];
         await deleteMediaFromCloudinary(publicId);
       }
-        console.log("FILE SAVED AT 👉", profilePhoto.path);
       // upload new image
       const cloudResponse = await uploadMedia(profilePhoto.path);
       user.photoURL = cloudResponse.secure_url;
+
+      // Clean up temporary local file safely
+      try {
+        const safeFilename = path.basename(profilePhoto.path || "");
+        const uploadsDir = path.resolve("uploads");
+        const fullSafePath = path.resolve(uploadsDir, safeFilename);
+        if (fullSafePath.startsWith(uploadsDir) && fs.existsSync(fullSafePath)) {
+          fs.unlinkSync(fullSafePath);
+        }
+      } catch (_) {}
     }
 
     await user.save();

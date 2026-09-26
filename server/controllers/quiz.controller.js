@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Quiz } from "../models/quiz.model.js";
 import { QuizAttempt } from "../models/quizAttempt.model.js";
 import { Course } from "../models/course.model.js";
@@ -284,8 +285,8 @@ export const submitQuiz = async (req, res) => {
     const studentId = req.id;
     const { attemptId, answers = [] } = req.body;
 
-    if (!attemptId) {
-      return res.status(400).json({ success: false, message: "Attempt ID is required." });
+    if (!attemptId || !mongoose.Types.ObjectId.isValid(attemptId) || !mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({ success: false, message: "Valid Attempt ID and Assessment ID are required." });
     }
 
     const attempt = await QuizAttempt.findOne({ _id: attemptId, quizId, studentId });
@@ -598,10 +599,10 @@ export const createQuiz = async (req, res) => {
       isPublished = true,
     } = req.body;
 
-    if (!courseId || !title) {
+    if (!courseId || !title || !mongoose.Types.ObjectId.isValid(courseId)) {
       return res.status(400).json({
         success: false,
-        message: "Course ID and Assessment Title are required.",
+        message: "Valid Course ID and Assessment Title are required.",
       });
     }
 
@@ -641,6 +642,9 @@ export const createQuiz = async (req, res) => {
 export const updateQuiz = async (req, res) => {
   try {
     const { quizId } = req.params;
+    if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({ success: false, message: "Valid Assessment ID is required." });
+    }
     const updateData = req.body;
 
     const quiz = await Quiz.findByIdAndUpdate(quizId, updateData, { new: true });

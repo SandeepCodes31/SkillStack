@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import crypto from "crypto";
+import mongoose from "mongoose";
 import PDFDocument from "pdfkit";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
@@ -133,10 +134,10 @@ export const createCheckoutSession = async (req, res) => {
     const userId = req.id;
     const { courseId } = req.body;
 
-    if (!courseId) {
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
       return res.status(400).json({
         success: false,
-        message: "Course ID is required",
+        message: "Invalid or missing course ID",
       });
     }
 
@@ -250,8 +251,8 @@ export const createCheckoutSession = async (req, res) => {
 
     // Upsert pending course purchase record
     let purchase = await CoursePurchase.findOne({
-      userId,
-      courseId,
+      userId: String(userId),
+      courseId: String(courseId),
       status: "pending",
     });
 
@@ -305,7 +306,10 @@ export const stripeWebhook = async (req, res) => {
     event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
   } catch (error) {
     console.error("Webhook signature verification failed:", error.message);
-    return res.status(400).send(`Webhook signature verification failed: ${error.message}`);
+    return res.status(400).json({
+      success: false,
+      message: "Webhook signature verification failed",
+    });
   }
 
   // Handle successful checkout session

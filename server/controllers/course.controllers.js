@@ -199,6 +199,11 @@ export const getCreatorCourses = async (req, res) => {
 export const editCourse = async (req, res) => {
   try {
     const courseId = req.params.courseId;
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        message: "Invalid course ID",
+      });
+    }
     const {
       courseTitle,
       subTitle,
