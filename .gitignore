@@ -1,19 +1,36 @@
 # Dependencies
 node_modules/
 */node_modules/
+server/node_modules/
+client/node_modules/
 
 # Environment files
 .env
 .env*.local
+.env.*
 *.env
 client/.env
 server/.env
+!.env.example
+!client/.env.example
+!server/.env.example
 
 # Build outputs
 dist/
 dist-ssr/
 build/
 client/dist/
+
+# Uploads and temporary media
+uploads/
+server/uploads/
+client/uploads/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+.nyc_output/
 
 # Logs
 npm-debug.log*

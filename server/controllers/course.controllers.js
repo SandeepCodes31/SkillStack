@@ -53,17 +53,18 @@ export const searchCourse = async (req, res) => {
     // Text search if query provided
     const trimmedQuery = query ? String(query).trim() : "";
     if (trimmedQuery) {
+      const safeQuery = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       // Find instructors matching query
       const matchingInstructors = await User.find({
-        name: { $regex: trimmedQuery, $options: "i" },
+        name: { $regex: safeQuery, $options: "i" },
       }).select("_id");
       const instructorIds = matchingInstructors.map((u) => u._id);
 
       const orConditions = [
-        { courseTitle: { $regex: trimmedQuery, $options: "i" } },
-        { subTitle: { $regex: trimmedQuery, $options: "i" } },
-        { description: { $regex: trimmedQuery, $options: "i" } },
-        { category: { $regex: trimmedQuery, $options: "i" } },
+        { courseTitle: { $regex: safeQuery, $options: "i" } },
+        { subTitle: { $regex: safeQuery, $options: "i" } },
+        { description: { $regex: safeQuery, $options: "i" } },
+        { category: { $regex: safeQuery, $options: "i" } },
       ];
 
       if (instructorIds.length > 0) {
@@ -215,6 +216,12 @@ export const editCourse = async (req, res) => {
       });
     }
 
+    if (course.creator?.toString() !== req.id && req.role !== "admin") {
+      return res.status(403).json({
+        message: "You are not authorized to edit this course.",
+      });
+    }
+
     let courseThumbnail;
     if (thumbnail) {
       if (course.courseThumbnail) {
@@ -338,19 +345,27 @@ export const createLecture = async (req, res) => {
       });
     }
 
-    //create lecture
-    // const lecture = await Lecture.create({lectureTitle});
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        message: "Course not found",
+      });
+    }
+
+    if (course.creator?.toString() !== req.id && req.role !== "admin") {
+      return res.status(403).json({
+        message: "You are not authorized to add lectures to this course.",
+      });
+    }
+
     const lecture = await Lecture.create({
       lectureTitle,
       courseId,
     });
 
-    const course = await Course.findById(courseId);
+    course.lectures.push(lecture._id);
+    await course.save();
 
-    if (course) {
-      course.lectures.push(lecture._id);
-      await course.save();
-    }
     return res.status(201).json({
       lecture,
       message: "Lecture created Successfully",
@@ -515,6 +530,15 @@ export const editLecture = async (req, res) => {
       return res.status(404).json({ message: "Lecture not found!" });
     }
 
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: "Course not found!" });
+    }
+
+    if (course.creator?.toString() !== req.id && req.role !== "admin") {
+      return res.status(403).json({ message: "You are not authorized to edit this lecture." });
+    }
+
     // 🔥 ENSURE courseId IS ALWAYS PRESENT
     lecture.courseId = courseId;
 
@@ -534,7 +558,6 @@ export const editLecture = async (req, res) => {
     await lecture.save(); // ✅ will not fail now
 
     // ensure lecture exists in course
-    const course = await Course.findById(courseId);
     if (course && !course.lectures.includes(lecture._id)) {
       course.lectures.push(lecture._id);
       await course.save();
@@ -558,21 +581,33 @@ export const editLecture = async (req, res) => {
 export const removeLecture = async (req, res) => {
   try {
     const { lectureId } = req.params;
-    const lecture = await Lecture.findByIdAndDelete(lectureId);
+    const lecture = await Lecture.findById(lectureId);
     if (!lecture) {
-      return res.status(200).json({
+      return res.status(404).json({
         message: "Lecture not found!",
       });
     }
+
+    const course = await Course.findOne({ lectures: lectureId });
+    if (course && course.creator?.toString() !== req.id && req.role !== "admin") {
+      return res.status(403).json({
+        message: "You are not authorized to delete this lecture.",
+      });
+    }
+
+    await Lecture.findByIdAndDelete(lectureId);
+
     //delete the lecture from cloudinary as well
     if (lecture.publicId) {
       await deleteVideoFromCloudinary(lecture.publicId);
     }
-    // remove the lecture refrence from the associated course
-    await Course.updateOne(
-      { lectures: lectureId }, //find the course that contains the lecture
-      { $pull: { lectures: lectureId } } // remove the lecture id from the lectures array
-    );
+    // remove the lecture reference from the associated course
+    if (course) {
+      await Course.updateOne(
+        { _id: course._id },
+        { $pull: { lectures: lectureId } }
+      );
+    }
 
     return res.status(200).json({
       message: "Lecture removed Successfully",
@@ -613,11 +648,18 @@ export const togglePublishCourse= async (req,res) => {
     const {courseId} = req.params;
     const {publish} = req.query; //true, false
     const course = await Course.findById(courseId);
-     if (!course) {
+    if (!course) {
       return res.status(404).json({
         message: "Course not found!",
       });
     }
+
+    if (course.creator?.toString() !== req.id && req.role !== "admin") {
+      return res.status(403).json({
+        message: "You are not authorized to publish/unpublish this course.",
+      });
+    }
+
     //publish status based on query parameter
     course.isPublished = publish === "true";
     await course.save();

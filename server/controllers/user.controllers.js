@@ -257,9 +257,19 @@ export const updateProfile = async (req, res) => {
 
     await user.save();
 
+    const safeUser = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      photoURL: user.photoURL || "",
+      enrolledCourses: user.enrolledCourses || [],
+      isVerified: user.isVerified ?? true,
+    };
+
     return res.status(200).json({
       success: true,
-      user,
+      user: safeUser,
       message: "Profile updated Successfully",
     });
   } catch (error) {

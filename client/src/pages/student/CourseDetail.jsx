@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
+import DOMPurify from "dompurify";
 import { useGetCourseDetailWithStatusQuery } from "@/features/api/purchaseApi";
 import BuyCourseButton from "@/components/BuyCourseButton";
 import { Button } from "@/components/ui/button";
@@ -391,7 +392,7 @@ const CourseDetail = () => {
               </h2>
               <div
                 className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed space-y-3 prose dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: course.description }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(course.description || "") }}
               />
             </div>
 

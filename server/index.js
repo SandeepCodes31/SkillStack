@@ -49,6 +49,7 @@ App.use(noSqlInjectionGuard);
 // 5. Environment-controlled CORS configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  "https://skill-stack-project.vercel.app",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:3000",
@@ -64,7 +65,7 @@ App.use(
         allowedOrigins.includes(origin) ||
         origin.startsWith("http://localhost:") ||
         origin.startsWith("http://127.0.0.1:") ||
-        origin.endsWith(".vercel.app");
+        (origin.endsWith(".vercel.app") && origin.includes("skill-stack"));
       if (isAllowed) {
         callback(null, true);
       } else {
@@ -131,9 +132,12 @@ App.use((err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
+  const isProduction = process.env.NODE_ENV === "production";
   return res.status(err.status || 500).json({
     success: false,
-    message: err.message || "Internal server error occurred",
+    message: isProduction
+      ? "Internal server error occurred"
+      : err.message || "Internal server error occurred",
   });
 });
 

@@ -10,6 +10,12 @@ export const generateToken = (res, user, message) => {
   const isProduction =
     process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
 
+  if (isProduction && !process.env.SECRET_KEY) {
+    console.warn(
+      "[SECURITY WARNING] Running in production without a custom SECRET_KEY env variable! Set SECRET_KEY in your hosting dashboard."
+    );
+  }
+
   const userSafe = {
     _id: user._id,
     name: user.name,

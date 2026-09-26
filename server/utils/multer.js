@@ -56,9 +56,29 @@ const storage = multer.diskStorage({
   },
 });
 
+const fileFilter = (req, file, cb) => {
+  const allowedMimes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/jpg",
+    "image/gif",
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+    "video/x-matroska",
+  ];
+  if (allowedMimes.includes(file.mimetype.toLowerCase())) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type. Only standard image and video files are permitted."), false);
+  }
+};
+
 const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter,
 });
 
 export default upload;

@@ -116,7 +116,7 @@ export const updateLectureProgress = async (req, res) => {
       streakResult = await recordLearningActivity(userId, {
         activityType: "LESSON_COMPLETED",
         courseId,
-        lessonId,
+        lessonId: lectureId,
         metadata: { courseTitle: course.courseTitle },
         timezone,
       });
