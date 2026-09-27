@@ -1,6 +1,6 @@
 import { LogIn } from "lucide-react";
 import "./App.css";
-import Login from "./pages/Login.jsx";
+import Login from "./pages/login.jsx";
 import Navbar from "./components/Navbar";
 import HeroSection from "./pages/student/HeroSection";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
