@@ -1,7 +1,6 @@
 import { LogIn } from "lucide-react";
 import "./App.css";
-import { Button } from "./components/ui/button";
-import Login from "./pages/login.jsx";
+import Login from "./pages/Login.jsx";
 import Navbar from "./components/Navbar";
 import HeroSection from "./pages/student/HeroSection";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -67,11 +66,11 @@ const appRouter = createBrowserRouter([
       },
        {
         path: "course/search",
-        element: <ProtectedRoute><SearchPage /></ProtectedRoute>,
+        element: <SearchPage />,
       },
       {
         path: "course-detail/:courseId",
-        element:<ProtectedRoute><CourseDetail /></ProtectedRoute>,
+        element: <CourseDetail />,
       },
       {
         path: "course-progress/:courseId",

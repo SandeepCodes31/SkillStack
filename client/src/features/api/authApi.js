@@ -17,6 +17,20 @@ export const authApi = createApi({
         method: "POST",
         body: inputData,
       }),
+      invalidatesTags: ["User"],
+      async onQueryStarted(_, { queryFulfilled, dispatch }) {
+        try {
+          const result = await queryFulfilled;
+          if (result?.data?.token) {
+            localStorage.setItem("token", result.data.token);
+          }
+          if (result?.data?.user) {
+            dispatch(userLoggedIn({ user: result.data.user }));
+          }
+        } catch (error) {
+          console.log("Register error in slice:", error);
+        }
+      },
     }),
     loginUser: builder.mutation({
       query: (inputData) => ({
@@ -67,8 +81,11 @@ export const authApi = createApi({
             dispatch(userLoggedIn({ user: result.data.user }));
           }
         } catch (error) {
-          localStorage.removeItem("token");
-          dispatch(userLoggedOut());
+          const status = error?.error?.status || error?.status;
+          if (status === 401 || status === 403) {
+            localStorage.removeItem("token");
+            dispatch(userLoggedOut());
+          }
         }
       },
     }),

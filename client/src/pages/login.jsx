@@ -117,15 +117,21 @@ const Login = ({ defaultTab = "login" }) => {
 
       try {
         const res = await registerUser(payload).unwrap();
-        toast.success(res?.message || "Registered successfully! Please log in.");
-        setLoginInput((prev) => ({ ...prev, email: signupInput.email.trim(), password: signupInput.password }));
-        setSignupInput({
-          name: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-        });
-        handleTabChange("login");
+        toast.success(res?.message || "Account created successfully!");
+        if (res?.token && res?.user) {
+          const userRole = res?.user?.role;
+          const isAdmin = userRole === "admin" || userRole === "instructor";
+          navigate(isAdmin ? "/admin/dashboard" : "/student/dashboard");
+        } else {
+          setLoginInput((prev) => ({ ...prev, email: signupInput.email.trim(), password: signupInput.password }));
+          setSignupInput({
+            name: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+          });
+          handleTabChange("login");
+        }
       } catch (err) {
         console.error("Signup error:", err);
         const errMsg =
@@ -181,6 +187,18 @@ const Login = ({ defaultTab = "login" }) => {
       }
     }
   }, [loginIsSuccess, loginData, navigate]);
+
+  useEffect(() => {
+    if (registerIsSuccess && registerData?.token && registerData?.user) {
+      const userRole = registerData?.user?.role;
+      const isAdmin = userRole === "admin" || userRole === "instructor";
+      if (isAdmin) {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/student/dashboard");
+      }
+    }
+  }, [registerIsSuccess, registerData, navigate]);
 
   const isBusy = loginIsLoading || registerIsLoading;
 

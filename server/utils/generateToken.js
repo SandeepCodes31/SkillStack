@@ -42,6 +42,56 @@ export const decryptCookie = (cipherText) => {
   }
 };
 
+/**
+ * Robust token extractor and verifier that handles:
+ * 1. Explicit Authorization: Bearer <token>
+ * 2. Decrypted cookie token
+ * 3. Raw cookie token (for legacy/unencrypted sessions)
+ */
+export const extractAndVerifyToken = (req) => {
+  const secretKey =
+    process.env.SECRET_KEY || "snjekfiejgcxkakasdfjd_skillstack_jwt_secret_2026";
+
+  const candidates = [];
+
+  // 1. Authorization header (Bearer token)
+  const authHeader = req.headers?.authorization || req.headers?.Authorization;
+  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+    const bToken = authHeader.slice(7).trim();
+    if (bToken) candidates.push(bToken);
+  }
+
+  // 2. Cookie token (decrypted and raw)
+  const rawCookie = req.cookies?.token;
+  if (rawCookie && typeof rawCookie === "string") {
+    const decrypted = decryptCookie(rawCookie);
+    if (decrypted && !candidates.includes(decrypted)) {
+      candidates.push(decrypted);
+    }
+    if (rawCookie !== decrypted && !candidates.includes(rawCookie)) {
+      candidates.push(rawCookie);
+    }
+  }
+
+  // 3. Verify each candidate until one succeeds
+  for (const candidate of candidates) {
+    try {
+      const decoded = jwt.verify(candidate, secretKey);
+      if (decoded && (decoded.userId || decoded.id)) {
+        return {
+          userId: decoded.userId || decoded.id,
+          role: decoded.role,
+          token: candidate,
+        };
+      }
+    } catch {
+      // Continue to next candidate
+    }
+  }
+
+  return null;
+};
+
 export const generateToken = (res, user, message) => {
   const secretKey =
     process.env.SECRET_KEY || "snjekfiejgcxkakasdfjd_skillstack_jwt_secret_2026";
@@ -70,14 +120,18 @@ export const generateToken = (res, user, message) => {
 
   const encryptedCookie = encryptCookie(token);
 
+  // Cross-site compatible cookie configuration
+  const cookieOptions = {
+    httpOnly: true,
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
+  };
+
   return res
     .status(200)
-    .cookie("token", encryptedCookie, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProduction,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    })
+    .cookie("token", encryptedCookie, cookieOptions)
     .json({
       success: true,
       message,

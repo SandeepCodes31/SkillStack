@@ -24,9 +24,10 @@ export const generalApiLimiter = rateLimit({
 // 2. Strict Authentication Limiter (login, register brute-force defense)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: process.env.NODE_ENV === "production" ? 50 : 250,
+  limit: 250,
   standardHeaders: "draft-8",
   legacyHeaders: false,
+  skipSuccessfulRequests: true,
   message: {
     success: false,
     message: "Too many authentication attempts. Please wait 15 minutes before trying again.",
@@ -36,9 +37,10 @@ export const authLimiter = rateLimit({
 // 3. Sensitive Operations Limiter (course purchase, checkout, certificate actions)
 export const sensitiveLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: process.env.NODE_ENV === "production" ? 100 : 300,
+  limit: 300,
   standardHeaders: "draft-8",
   legacyHeaders: false,
+  skipSuccessfulRequests: true,
   message: {
     success: false,
     message: "Too many sensitive operations requested. Please try again shortly.",

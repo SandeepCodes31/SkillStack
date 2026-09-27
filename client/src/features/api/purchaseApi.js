@@ -16,7 +16,7 @@ export const purchaseApi = createApi({
         method: "POST",
         body: { courseId },
       }),
-      invalidatesTags: ["Purchases"],
+      invalidatesTags: ["Purchases", "CourseDetail"],
     }),
     verifySession: builder.query({
       query: (sessionId) => ({
@@ -24,6 +24,7 @@ export const purchaseApi = createApi({
         method: "GET",
       }),
       providesTags: ["Purchases"],
+      invalidatesTags: ["CourseDetail"],
     }),
     getCourseDetailWithStatus: builder.query({
       query: (courseId) => ({
@@ -31,6 +32,7 @@ export const purchaseApi = createApi({
         method: "GET",
       }),
       providesTags: (result, error, courseId) => [
+        "CourseDetail",
         { type: "CourseDetail", id: courseId },
       ],
     }),

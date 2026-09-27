@@ -17,12 +17,12 @@ const router = express.Router();
 
 router.route("/checkout/create-checkout-session").post(sensitiveLimiter, isAuthenticated, createCheckoutSession);
 router.route("/webhook").post(express.raw({ type: "application/json" }), stripeWebhook);
-router.route("/verify-session/:sessionId").get(verifyCheckoutSession);
+router.route("/verify-session/:sessionId").get(optionalAuth, verifyCheckoutSession);
 router.route("/course/:courseId/detail-with-status").get(optionalAuth, getCourseDetailWithPurchaseStatus);
 router.route("/my-purchases").get(isAuthenticated, getMyPurchases);
 router.route("/all-purchases").get(isAuthenticated, getAllPurchases);
-router.route("/receipt/:purchaseId").get(getReceiptData);
-router.route("/receipt/:purchaseId/pdf").get(downloadReceiptPdf);
+router.route("/receipt/:purchaseId").get(optionalAuth, getReceiptData);
+router.route("/receipt/:purchaseId/pdf").get(optionalAuth, downloadReceiptPdf);
 router.route("/").get(isAuthenticated, getAllPurchasedCourse);
 
 export default router;

@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { Course } from "../models/course.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
 import { User } from "../models/user.model.js";
+import { extractAndVerifyToken } from "../utils/generateToken.js";
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -405,22 +406,7 @@ export const verifyCheckoutSession = async (req, res) => {
       process.env.SECRET_KEY || "snjekfiejgcxkakasdfjd_skillstack_jwt_secret_2026";
 
     // Read token if present in cookies or Authorization header
-    let userId = req.id;
-    const authHeader = req.headers.authorization || req.headers.Authorization;
-    const bearerToken =
-      typeof authHeader === "string" && authHeader.startsWith("Bearer ")
-        ? authHeader.slice(7).trim()
-        : null;
-    const tokenToVerify = req.cookies?.token || bearerToken;
-
-    if (!userId && tokenToVerify) {
-      try {
-        const decoded = jwt.verify(tokenToVerify, secretKey);
-        userId = decoded.userId;
-      } catch (e) {
-        // Token was missing or expired; will use Stripe session metadata
-      }
-    }
+    let userId = req.id || extractAndVerifyToken(req)?.userId;
 
     // 1. Check if purchase is already completed in MongoDB
     let purchase = await CoursePurchase.findOne({ paymentId: sessionId })
@@ -502,13 +488,17 @@ export const verifyCheckoutSession = async (req, res) => {
   }
 };
 
+const isAlreadyPurchased = (isEnrolled, completedPurchase) => {
+  return Boolean(isEnrolled || completedPurchase);
+};
+
 /**
  * Returns course detail along with purchased boolean flag.
  */
 export const getCourseDetailWithPurchaseStatus = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const userId = req.id;
+    const userId = req.id || extractAndVerifyToken(req)?.userId;
 
     const course = await Course.findById(courseId)
       .populate({ path: "creator", select: "name email photoURL" })
@@ -550,10 +540,6 @@ export const getCourseDetailWithPurchaseStatus = async (req, res) => {
       error: error.message,
     });
   }
-};
-
-const isAlreadyPurchased = (isEnrolled, completedPurchase) => {
-  return isEnrolled || Boolean(completedPurchase);
 };
 
 /**
@@ -658,13 +644,7 @@ export const getAllPurchasedCourse = async (req, res) => {
 export const getReceiptData = async (req, res) => {
   try {
     const { purchaseId } = req.params;
-    let userId = req.id;
-    if (!userId && req.cookies?.token) {
-      try {
-        const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
-        userId = decoded.userId;
-      } catch (e) {}
-    }
+    const userId = req.id || extractAndVerifyToken(req)?.userId;
 
     const purchase = await CoursePurchase.findById(purchaseId)
       .populate({
@@ -738,13 +718,7 @@ export const getReceiptData = async (req, res) => {
 export const downloadReceiptPdf = async (req, res) => {
   try {
     const { purchaseId } = req.params;
-    let userId = req.id;
-    if (!userId && req.cookies?.token) {
-      try {
-        const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
-        userId = decoded.userId;
-      } catch (e) {}
-    }
+    const userId = req.id || extractAndVerifyToken(req)?.userId;
 
     const purchase = await CoursePurchase.findById(purchaseId)
       .populate({

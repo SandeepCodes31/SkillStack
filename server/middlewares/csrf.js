@@ -96,7 +96,9 @@ export const csrfProtection = (req, res, next) => {
       ALLOWED_ORIGINS.includes(rawOrigin) ||
       rawOrigin.startsWith("http://localhost:") ||
       rawOrigin.startsWith("http://127.0.0.1:") ||
-      (rawOrigin.endsWith(".vercel.app") && rawOrigin.includes("skill-stack"));
+      rawOrigin.endsWith(".vercel.app") ||
+      rawOrigin.includes("skillstack") ||
+      rawOrigin.includes("skill-stack");
 
     if (!isAllowed) {
       return res.status(403).json({

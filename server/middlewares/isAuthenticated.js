@@ -1,38 +1,39 @@
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
-import { decryptCookie } from "../utils/generateToken.js";
+import { extractAndVerifyToken } from "../utils/generateToken.js";
 
 const isAuthenticated = async (req, res, next) => {
-  // ✅ allow CORS preflight to pass
+  // Allow CORS preflight to pass smoothly
   if (req.method === "OPTIONS") {
     return next();
   }
-  try {
-    const authHeader = req.headers.authorization || req.headers.Authorization;
-    const rawCookie = req.cookies?.token;
-    const token =
-      (rawCookie ? decryptCookie(rawCookie) : null) ||
-      (typeof authHeader === "string" && authHeader.startsWith("Bearer ")
-        ? authHeader.slice(7).trim()
-        : null);
 
-    if (!token) {
-      return res.status(401).json({
-        message: "User not authenticated. Please log in.",
-        success: false,
-      });
-    }
-    const secretKey =
-      process.env.SECRET_KEY || "snjekfiejgcxkakasdfjd_skillstack_jwt_secret_2026";
-    const decode = jwt.verify(token, secretKey);
-    req.id = decode.userId;
-    req.role = decode.role;
-    next();
-  } catch (error) {
-    console.log("AUTH ERROR:", error.message);
+  const authData = extractAndVerifyToken(req);
+  if (!authData) {
     return res.status(401).json({
       success: false,
-      message: "Invalid or expired session. Please log in again.",
+      message: "User not authenticated. Please log in.",
+    });
+  }
+
+  try {
+    const user = await User.findById(authData.userId).select("_id role isVerified name email");
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Account not found. Please log in again.",
+      });
+    }
+
+    req.id = user._id.toString();
+    req.role = user.role;
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error("Authentication DB verification error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Authentication verification failed",
     });
   }
 };
@@ -65,20 +66,10 @@ export const optionalAuth = async (req, res, next) => {
     return next();
   }
   try {
-    const authHeader = req.headers.authorization || req.headers.Authorization;
-    const rawCookie = req.cookies?.token;
-    const token =
-      (rawCookie ? decryptCookie(rawCookie) : null) ||
-      (typeof authHeader === "string" && authHeader.startsWith("Bearer ")
-        ? authHeader.slice(7).trim()
-        : null);
-
-    if (token) {
-      const secretKey =
-        process.env.SECRET_KEY || "snjekfiejgcxkakasdfjd_skillstack_jwt_secret_2026";
-      const decode = jwt.verify(token, secretKey);
-      req.id = decode.userId;
-      req.role = decode.role;
+    const authData = extractAndVerifyToken(req);
+    if (authData?.userId) {
+      req.id = authData.userId.toString();
+      req.role = authData.role;
     }
   } catch (error) {
     // Guest visitor; continue smoothly without req.id

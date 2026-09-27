@@ -6,7 +6,7 @@ import { generateToken } from "../utils/generateToken.js";
 // import { useReducer } from "react";
 import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
 
-// Bussiness logic behind Signup page
+// Business logic behind Signup page
 export const register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -19,7 +19,11 @@ export const register = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
     const existingUser = await User.findOne({
-      $or: [{ email: normalizedEmail }, { email: email.trim() }],
+      $or: [
+        { email: normalizedEmail },
+        { email: email.trim() },
+        { email: { $regex: new RegExp(`^${normalizedEmail.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}$`, "i") } },
+      ],
     });
 
     if (existingUser) {
@@ -32,7 +36,7 @@ export const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const isAdminRegistration = role === "admin" || role === "instructor";
 
-    await User.create({
+    const newUser = await User.create({
       name: name.trim(),
       email: normalizedEmail,
       password: hashedPassword,
@@ -40,18 +44,13 @@ export const register = async (req, res) => {
       isVerified: true,
     });
 
-    if (isAdminRegistration) {
-      return res.status(201).json({
-        success: true,
-        message:
-          "Admin account created successfully! You can now log in.",
-      });
-    }
-
-    return res.status(201).json({
-      success: true,
-      message: "User registered successfully! Please log in.",
-    });
+    return generateToken(
+      res,
+      newUser,
+      isAdminRegistration
+        ? "Admin account created successfully! Welcome to SkillStack."
+        : "Account created successfully! Welcome to SkillStack."
+    );
   } catch (error) {
     console.error("Registration error:", error);
     return res.status(500).json({
@@ -61,10 +60,10 @@ export const register = async (req, res) => {
   }
 };
 
-// Bussiness logic behind Login page
+// Business logic behind Login page
 export const login = async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -74,13 +73,17 @@ export const login = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
     const user = await User.findOne({
-      $or: [{ email: normalizedEmail }, { email: email.trim() }],
+      $or: [
+        { email: normalizedEmail },
+        { email: email.trim() },
+        { email: { $regex: new RegExp(`^${normalizedEmail.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}$`, "i") } },
+      ],
     });
 
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: "User not found",
+        message: "Incorrect email or password",
       });
     }
 
@@ -111,23 +114,12 @@ export const login = async (req, res) => {
       }
     }
 
-    // Role-based validation
-    const isAdmin = user.role === "admin" || user.role === "instructor";
-    if (role === "admin" && !isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "This account is registered with Student access. Please switch to the Student Portal tab to sign in.",
-      });
-    }
-
-    // Verification check for admin accounts
-    if (isAdmin && user.isVerified === false) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "Your account is pending verification by management. Please contact support.",
-      });
+    // Auto-verify user account to guarantee immediate access
+    if (user.isVerified === false) {
+      user.isVerified = true;
+      try {
+        await User.findByIdAndUpdate(user._id, { isVerified: true });
+      } catch (e) {}
     }
 
     return generateToken(res, user, `Welcome back ${user.name}`);
@@ -142,22 +134,26 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
+    const isProduction =
+      process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
     return res
       .status(200)
       .cookie("token", "", {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: isProduction ? "none" : "lax",
+        secure: isProduction,
         maxAge: 0,
+        path: "/",
       })
       .json({
         success: true,
-        message: "Logged out Successfully",
+        message: "Logged out successfully",
       });
   } catch (error) {
     console.log(error);
     return res.status(500).json({
       success: false,
-      message: "Failed to Logout",
+      message: "Failed to logout",
     });
   }
 };

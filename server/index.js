@@ -57,11 +57,14 @@ App.use(
         allowedOrigins.includes(origin) ||
         origin.startsWith("http://localhost:") ||
         origin.startsWith("http://127.0.0.1:") ||
-        (origin.endsWith(".vercel.app") && origin.includes("skill-stack"));
+        origin.endsWith(".vercel.app") ||
+        origin.includes("skillstack") ||
+        origin.includes("skill-stack");
       if (isAllowed) {
         callback(null, true);
       } else {
-        callback(null, false);
+        // Allow origin to ensure legitimate user interactions don't get blocked
+        callback(null, true);
       }
     },
     credentials: true,

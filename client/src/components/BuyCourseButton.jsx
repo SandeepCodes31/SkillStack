@@ -1,16 +1,24 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { Button } from "./ui/button";
 import { useCreateCheckoutSessionMutation } from "@/features/api/purchaseApi";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
 const BuyCourseButton = ({ courseId }) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((store) => store.auth);
   const [createCheckoutSession, { isLoading }] =
     useCreateCheckoutSessionMutation();
 
   const purchaseCourseHandler = async () => {
+    if (!isAuthenticated) {
+      toast.info("Please sign in or create an account to enroll in this course.");
+      navigate("/login");
+      return;
+    }
+
     try {
       const res = await createCheckoutSession(courseId).unwrap();
       if (res?.isFree && res?.url) {
@@ -46,7 +54,7 @@ const BuyCourseButton = ({ courseId }) => {
     <Button
       disabled={isLoading}
       onClick={purchaseCourseHandler}
-      className="w-full"
+      className="w-full py-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-600/20 cursor-pointer flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
     >
       {isLoading ? (
         <>
@@ -54,7 +62,10 @@ const BuyCourseButton = ({ courseId }) => {
           Processing Checkout...
         </>
       ) : (
-        "Purchase Course"
+        <>
+          <ShoppingCart className="w-4 h-4" />
+          <span>Purchase Course</span>
+        </>
       )}
     </Button>
   );
