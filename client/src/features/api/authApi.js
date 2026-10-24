@@ -58,16 +58,29 @@ export const authApi = createApi({
         url: "logout",
         method: "GET",
       }),
-      invalidatesTags: ["User"],
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
+        // Step 1: Wipe tokens immediately to block any in-flight auth
+        try {
+          localStorage.removeItem("token");
+          localStorage.clear();
+          sessionStorage.clear();
+          dispatch(userLoggedOut());
+        } catch (e) {
+          console.error(e);
+        }
+
+        // Step 2: Notify backend to invalidate cookies
         try {
           await queryFulfilled;
         } catch (error) {
-          console.log("Logout error:", error);
+          console.log("Logout query error:", error);
         } finally {
+          // Step 3: Ensure unconditional reset of storage and cache
           localStorage.removeItem("token");
           localStorage.clear();
+          sessionStorage.clear();
           dispatch(userLoggedOut());
+          dispatch(authApi.util.resetApiState());
         }
       },
     }),
@@ -82,13 +95,13 @@ export const authApi = createApi({
           const result = await queryFulfilled;
           if (result?.data?.user) {
             dispatch(userLoggedIn({ user: result.data.user }));
-          }
-        } catch (error) {
-          const status = error?.error?.status || error?.status;
-          if (status === 401 || status === 403) {
+          } else {
             localStorage.removeItem("token");
             dispatch(userLoggedOut());
           }
+        } catch (error) {
+          localStorage.removeItem("token");
+          dispatch(userLoggedOut());
         }
       },
     }),

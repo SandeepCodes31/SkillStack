@@ -35,14 +35,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useLogoutUserMutation } from "@/features/api/authApi";
-import { useSelector } from "react-redux";
+import { useLogoutUserMutation, authApi } from "@/features/api/authApi";
+import { useDispatch, useSelector } from "react-redux";
+import { userLoggedOut } from "@/features/authSlice";
 
 const Navbar = ({ onOpenContact }) => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((store) => store.auth);
-  const [logoutUser, { data, isSuccess }] = useLogoutUserMutation();
+  const [logoutUser] = useLogoutUserMutation();
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -54,15 +56,29 @@ const Navbar = ({ onOpenContact }) => {
   }, []);
 
   const logoutHandler = async () => {
-    await logoutUser();
-  };
+    try {
+      // 1. Immediately purge tokens and storage to block any subsequent authenticated calls
+      localStorage.removeItem("token");
+      localStorage.clear();
+      sessionStorage.clear();
 
-  useEffect(() => {
-    if (isSuccess) {
-      toast.success(data?.message || "Logged out successfully");
-      window.location.href = "/login";
+      // 2. Immediately reset Redux state and query cache
+      dispatch(userLoggedOut());
+      dispatch(authApi.util.resetApiState());
+
+      // 3. Notify server to invalidate cookies across all variants
+      await logoutUser().unwrap().catch(() => {});
+    } catch (err) {
+      console.error("Logout handler notice:", err);
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.clear();
+      sessionStorage.clear();
+      dispatch(userLoggedOut());
+      toast.success("Logged out successfully");
+      window.location.replace("/login");
     }
-  }, [isSuccess, data]);
+  };
 
   const navLinks = [
     { label: "Home", href: "/" },

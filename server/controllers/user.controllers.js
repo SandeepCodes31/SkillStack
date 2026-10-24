@@ -159,29 +159,43 @@ export const logout = async (req, res) => {
     const isProduction =
       process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
 
-    res.clearCookie("token", {
-      httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
-      path: "/",
-    });
+    // Explicitly invalidate cookies across all possible browser variations
+    const cookieVariations = [
+      { httpOnly: true, sameSite: isProduction ? "none" : "lax", secure: isProduction, path: "/" },
+      { httpOnly: true, sameSite: "none", secure: true, path: "/" },
+      { httpOnly: true, sameSite: "lax", secure: false, path: "/" },
+      { httpOnly: true, sameSite: "strict", secure: false, path: "/" },
+      { httpOnly: true, sameSite: "lax", secure: true, path: "/" },
+      { httpOnly: true, path: "/" },
+      { path: "/" },
+      {},
+    ];
 
-    return res
-      .status(200)
-      .cookie("token", "", {
-        httpOnly: true,
-        sameSite: isProduction ? "none" : "lax",
-        secure: isProduction,
+    cookieVariations.forEach((opts) => {
+      res.clearCookie("token", opts);
+      res.cookie("token", "", {
+        ...opts,
         expires: new Date(0),
         maxAge: 0,
-        path: "/",
-      })
-      .json({
-        success: true,
-        message: "Logged out successfully",
       });
+    });
+
+    // Also clear other possible cookie variants
+    ["token", "Token", "jwt", "session"].forEach((cName) => {
+      res.clearCookie(cName, { path: "/" });
+      res.cookie(cName, "", { path: "/", expires: new Date(0), maxAge: 0 });
+    });
+
+    try {
+      res.setHeader("Clear-Site-Data", '"cookies"');
+    } catch (_) {}
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
   } catch (error) {
-    console.log(error);
+    console.error("Logout error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to logout",
