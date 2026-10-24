@@ -34,22 +34,41 @@ export const register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const isAdminRegistration = role === "admin" || role === "instructor";
+    const requestedRole = (role || "").trim().toLowerCase();
+    const isAdminRegistration = requestedRole === "admin" || requestedRole === "instructor";
+
+    let finalRole = "student";
+    if (isAdminRegistration) {
+      const authorizedAdminEmails = [
+        "sandeeppal6926@gmail.com",
+        (process.env.ADMIN_EMAIL || "").trim().toLowerCase(),
+      ].filter(Boolean);
+
+      if (authorizedAdminEmails.includes(normalizedEmail)) {
+        finalRole = "admin";
+      } else {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Admin registration is restricted. Only authorized platform administrator emails can create an admin account.",
+        });
+      }
+    }
 
     const newUser = await User.create({
       name: name.trim(),
       email: normalizedEmail,
       password: hashedPassword,
-      role: isAdminRegistration ? "admin" : "student",
+      role: finalRole,
       isVerified: true,
     });
 
     return generateToken(
       res,
       newUser,
-      isAdminRegistration
-        ? "Admin account created successfully! Welcome to SkillStack."
-        : "Account created successfully! Welcome to SkillStack."
+      finalRole === "admin"
+        ? "Admin account created successfully! Welcome to SkillStack Admin Portal."
+        : "Student account created successfully! Welcome to SkillStack."
     );
   } catch (error) {
     console.error("Registration error:", error);
@@ -63,7 +82,7 @@ export const register = async (req, res) => {
 // Business logic behind Login page
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -95,26 +114,29 @@ export const login = async (req, res) => {
       });
     }
 
-    // Auto-promote platform admin/owner accounts if needed
-    const ownerEmails = [
-      "sandeep31@gmail.com",
-      "palsandeep8656@gmail.com",
-      "sandeepgcp31@gmail.com",
-      "sandeeppal6926@gmail.com",
-      (process.env.ADMIN_EMAIL || "").trim().toLowerCase(),
-    ].filter(Boolean);
+    // Strict Role-Based Access Validation
+    const selectedRole = (role || "").trim().toLowerCase();
+    const isUserAdmin = user.role === "admin" || user.role === "instructor";
 
-    if (ownerEmails.includes(normalizedEmail) && user.role !== "admin") {
-      user.role = "admin";
-      user.isVerified = true;
-      try {
-        await User.findByIdAndUpdate(user._id, { role: "admin", isVerified: true });
-      } catch (saveErr) {
-        console.warn("Could not auto-promote user in DB:", saveErr.message);
+    if (selectedRole === "admin") {
+      if (!isUserAdmin) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Access denied. This is a student account. Please select 'Student' to log in to the Student Portal.",
+        });
+      }
+    } else if (selectedRole === "student") {
+      if (isUserAdmin) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "This account has administrator privileges. Please select 'Admin' to log in to the Admin Portal.",
+        });
       }
     }
 
-    // Auto-verify user account to guarantee immediate access
+    // Ensure user account verification
     if (user.isVerified === false) {
       user.isVerified = true;
       try {
@@ -136,12 +158,21 @@ export const logout = async (req, res) => {
   try {
     const isProduction =
       process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
+
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
+      path: "/",
+    });
+
     return res
       .status(200)
       .cookie("token", "", {
         httpOnly: true,
         sameSite: isProduction ? "none" : "lax",
         secure: isProduction,
+        expires: new Date(0),
         maxAge: 0,
         path: "/",
       })

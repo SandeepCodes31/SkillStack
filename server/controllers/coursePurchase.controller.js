@@ -613,6 +613,14 @@ export const getAllPurchases = async (req, res) => {
  */
 export const getAllPurchasedCourse = async (req, res) => {
   try {
+    const user = await User.findById(req.id);
+    if (!user || (user.role !== "admin" && user.role !== "instructor")) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admin privileges required.",
+      });
+    }
+
     const purchasedCourse = await CoursePurchase.find({
       status: "completed",
     })

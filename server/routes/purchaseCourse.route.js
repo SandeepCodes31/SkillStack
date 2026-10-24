@@ -1,5 +1,5 @@
 import express from "express";
-import isAuthenticated, { optionalAuth } from "../middlewares/isAuthenticated.js";
+import isAuthenticated, { optionalAuth, authorizeAdmin } from "../middlewares/isAuthenticated.js";
 import {
   createCheckoutSession,
   getAllPurchasedCourse,
@@ -20,9 +20,9 @@ router.route("/webhook").post(express.raw({ type: "application/json" }), stripeW
 router.route("/verify-session/:sessionId").get(optionalAuth, verifyCheckoutSession);
 router.route("/course/:courseId/detail-with-status").get(optionalAuth, getCourseDetailWithPurchaseStatus);
 router.route("/my-purchases").get(isAuthenticated, getMyPurchases);
-router.route("/all-purchases").get(isAuthenticated, getAllPurchases);
+router.route("/all-purchases").get(isAuthenticated, authorizeAdmin, getAllPurchases);
 router.route("/receipt/:purchaseId").get(optionalAuth, getReceiptData);
 router.route("/receipt/:purchaseId/pdf").get(optionalAuth, downloadReceiptPdf);
-router.route("/").get(isAuthenticated, getAllPurchasedCourse);
+router.route("/").get(isAuthenticated, authorizeAdmin, getAllPurchasedCourse);
 
 export default router;

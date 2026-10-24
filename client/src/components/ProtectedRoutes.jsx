@@ -1,54 +1,55 @@
 import { useSelector } from "react-redux"
 import { Navigate } from "react-router-dom";
 
-export const ProtectedRoute = ({children}) => {
-    const {isAuthenticated} = useSelector(store=>store.auth);
+export const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useSelector((store) => store.auth);
 
-    if(!isAuthenticated){
-        return <Navigate to="/login"/>
-    }
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
-    return children;
-}
-export const AuthenticatedUser = ({children}) => {
-    const {user, isAuthenticated} = useSelector(store=>store.auth);
+  return children;
+};
 
-    if(isAuthenticated){
-        const isAdmin = user?.role === "instructor" || user?.role === "admin";
-        return <Navigate to={isAdmin ? "/admin/dashboard" : "/student/dashboard"}/>
-    }
+export const AuthenticatedUser = ({ children }) => {
+  const { user, isAuthenticated } = useSelector((store) => store.auth);
 
-    return children;
-}
-
-
-export const AdminRoute = ({children}) => {
-    const {user, isAuthenticated} = useSelector(store=>store.auth);
-
-    if(!isAuthenticated){
-        return <Navigate to="/login"/>
-    }
-
+  if (isAuthenticated) {
     const isAdmin = user?.role === "instructor" || user?.role === "admin";
-    if(!isAdmin){
-        return <Navigate to="/student/dashboard"/>
-    }
+    return <Navigate to={isAdmin ? "/admin/dashboard" : "/student/dashboard"} replace />;
+  }
 
-    return children;
-}
+  return children;
+};
 
-export const StudentRoute = ({children}) => {
-    const {user, isAuthenticated} = useSelector(store=>store.auth);
+export const AdminRoute = ({ children }) => {
+  const { user, isAuthenticated } = useSelector((store) => store.auth);
 
-    if(!isAuthenticated){
-        return <Navigate to="/login"/>
-    }
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
-    if(user?.role !== "student"){
-        return <Navigate to="/admin/dashboard"/>
-    }
+  const isAdmin = user?.role === "instructor" || user?.role === "admin";
+  if (!isAdmin) {
+    return <Navigate to="/student/dashboard" replace />;
+  }
 
-    return children;
-}
+  return children;
+};
+
+export const StudentRoute = ({ children }) => {
+  const { user, isAuthenticated } = useSelector((store) => store.auth);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const isAdmin = user?.role === "instructor" || user?.role === "admin";
+  if (isAdmin) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return children;
+};
 
 

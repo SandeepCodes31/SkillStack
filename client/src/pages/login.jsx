@@ -439,10 +439,10 @@ const Login = ({ defaultTab = "login" }) => {
                 </div>
                 <div className="space-y-1 min-w-0">
                   <p className="text-xs font-bold text-blue-950 dark:text-blue-200">
-                    Account Verification Required
+                    Administrator Registration
                   </p>
                   <p className="text-[11px] text-blue-900/85 dark:text-blue-300/85 leading-relaxed">
-                    Your account will be verified by management and will be contacted for further process. Once verified, you can then log in.
+                    Administrative access is reserved for verified platform administrators. Only authorized institutional administrator emails can register as Admin.
                   </p>
                 </div>
               </div>

@@ -18,6 +18,7 @@ import {
   useLoadUserQuery,
   useUpdateUserMutation,
 } from "@/features/api/authApi";
+import { useGetCreatorCourseQuery } from "@/features/api/courseApi";
 import { useGetMyStreakQuery, useGetMyBadgesQuery } from "@/features/api/streakApi";
 import { useGetMyCertificatesQuery } from "@/features/api/certificateApi";
 import { toast } from "sonner";
@@ -37,6 +38,11 @@ import {
   Pencil,
   Sparkles,
   Loader2,
+  LayoutDashboard,
+  HelpCircle,
+  CreditCard,
+  Plus,
+  Layers,
 } from "lucide-react";
 
 const Profile = () => {
@@ -49,20 +55,23 @@ const Profile = () => {
 
   // Queries
   const { data, isLoading, isError, error, refetch } = useLoadUserQuery();
-  const { data: streakResponse } = useGetMyStreakQuery();
-  const { data: badgesResponse } = useGetMyBadgesQuery();
-  const { data: certsResponse } = useGetMyCertificatesQuery();
+  const user = data?.user;
+  const isAdmin = user?.role === "admin" || user?.role === "instructor";
+
+  const { data: streakResponse } = useGetMyStreakQuery(undefined, { skip: isAdmin });
+  const { data: badgesResponse } = useGetMyBadgesQuery(undefined, { skip: isAdmin });
+  const { data: certsResponse } = useGetMyCertificatesQuery(undefined, { skip: isAdmin });
+  const { data: creatorCoursesData } = useGetCreatorCourseQuery(undefined, { skip: !isAdmin });
 
   const streak = streakResponse?.data;
   const badges = badgesResponse?.data?.badges || [];
   const certsCount = certsResponse?.certificates?.length || 0;
+  const createdCourses = creatorCoursesData?.courses || [];
 
   const [
     updateUser,
     { isLoading: updateUserIsLoading, isSuccess: updateIsSuccess, isError: updateIsError, error: updateError, data: updateData },
   ] = useUpdateUserMutation();
-
-  const user = data?.user;
 
   // Sync initial user name into state
   useEffect(() => {
@@ -166,11 +175,20 @@ const Profile = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-sky-300 border border-blue-200/60 dark:border-blue-800">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
-              <span>Learner Profile</span>
+              {isAdmin ? (
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
+                  <span>Administrator Profile</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
+                  <span>Student Profile</span>
+                </>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] dark:text-white tracking-tight">
-              My Profile
+              {isAdmin ? "Admin Profile" : "My Profile"}
             </h1>
           </div>
 
@@ -178,10 +196,10 @@ const Profile = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate("/student/dashboard")}
+              onClick={() => navigate(isAdmin ? "/admin/dashboard" : "/student/dashboard")}
               className="rounded-xl border-[#DCEAF7] dark:border-slate-800 bg-white/80 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold h-9 px-3.5 cursor-pointer shadow-2xs gap-1.5"
             >
-              <span>Dashboard</span>
+              <span>{isAdmin ? "Admin Dashboard" : "Student Dashboard"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -307,176 +325,353 @@ const Profile = () => {
               </div>
 
               {/* Stat Pills */}
-              <div className="grid grid-cols-3 gap-3 pt-2">
-                <div className="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 text-center">
-                  <p className="text-lg sm:text-xl font-black text-blue-600 dark:text-sky-400">
-                    {enrolledCourses.length}
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                    Enrolled Courses
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 text-center">
-                  <p className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400">
-                    {streak?.currentStreak || 0}
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                    Current Streak
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-center">
-                  <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
-                    {certsCount}
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                    Certificates Earned
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ==================================================== */}
-        {/* 3. LEARNING STREAK & BADGES SECTION */}
-        {/* ==================================================== */}
-        <section className="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl shadow-xs p-6 sm:p-7 space-y-5 transition-all">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
-                <Flame className="w-7 h-7 fill-white" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg sm:text-xl font-bold text-[#0F172A] dark:text-white">
-                    {streak?.currentStreak || 0} Day Learning Streak
-                  </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800">
-                    {streak?.learnedToday ? "Active Today 🔥" : "Daily Goal"}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
-                  <Trophy className="w-3.5 h-3.5 text-amber-500" />
-                  <span>
-                    Longest Streak: <strong>{streak?.longestStreak || 0} days</strong>
-                  </span>
-                  <span className="text-slate-300 dark:text-slate-700">•</span>
-                  <span>
-                    Total Active Days: <strong>{streak?.totalLearningDays || 0}</strong>
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/student/dashboard")}
-              className="rounded-xl border-[#DCEAF7] dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold h-9 px-3.5 gap-1.5 cursor-pointer self-start sm:self-auto"
-            >
-              <span>View Streak Details</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-
-          {/* Badges Milestone Grid */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Badges & Achievements
-              </h3>
-              <span className="text-xs font-semibold text-blue-600 dark:text-sky-400">
-                {badges.filter((b) => b.isEarned).length} of {badges.length} Unlocked
-              </span>
-            </div>
-
-            <div className="flex flex-wrap gap-2.5">
-              {badges.length === 0 ? (
-                <p className="text-xs text-slate-400">No badges currently listed.</p>
-              ) : (
-                badges.map((b) => (
-                  <div
-                    key={b.badgeId}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-medium transition-all ${
-                      b.isEarned
-                        ? "bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-900/60 text-amber-900 dark:text-amber-200 shadow-2xs"
-                        : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
-                    }`}
-                    title={b.description}
-                  >
-                    <span className="text-base">{b.icon}</span>
-                    <span className="font-bold">{b.name}</span>
-                    {b.isEarned ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    ) : (
-                      <Lock className="w-3 h-3 text-slate-400 shrink-0" />
-                    )}
+              {isAdmin ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  <div className="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 text-center">
+                    <p className="text-lg sm:text-xl font-black text-blue-600 dark:text-sky-400">
+                      {createdCourses.length}
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Courses Created
+                    </p>
                   </div>
-                ))
+
+                  <div className="p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-center">
+                    <p className="text-lg sm:text-xl font-black text-indigo-600 dark:text-indigo-400">
+                      {user?.role?.toUpperCase() || "ADMIN"}
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Privilege Role
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-center">
+                    <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
+                      Full Access
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Institutional Control
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-3 pt-2">
+                  <div className="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 text-center">
+                    <p className="text-lg sm:text-xl font-black text-blue-600 dark:text-sky-400">
+                      {enrolledCourses.length}
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Enrolled Courses
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 text-center">
+                    <p className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400">
+                      {streak?.currentStreak || 0}
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Current Streak
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-center">
+                    <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
+                      {certsCount}
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Certificates Earned
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
           </div>
         </section>
 
-        {/* ==================================================== */}
-        {/* 4. COURSES YOU ARE ENROLLED IN */}
-        {/* ==================================================== */}
-        <section className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] dark:text-white tracking-tight">
-                  Courses you are Enrolled in
-                </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-sky-400 border border-blue-200/60 dark:border-blue-800">
-                  {enrolledCourses.length}
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                Pick up where you left off or review course lectures.
-              </p>
-            </div>
+        {isAdmin ? (
+          <>
+            {/* ADMIN MANAGEMENT ACTIONS */}
+            <section className="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl shadow-xs p-6 sm:p-7 space-y-5 transition-all">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                    <ShieldCheck className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold text-[#0F172A] dark:text-white">
+                      Administrator Control Hub
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Direct shortcuts to administrative management modules
+                    </p>
+                  </div>
+                </div>
 
-            {enrolledCourses.length > 0 && (
-              <Link
-                to="/my-learning"
-                className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-sky-400 transition-colors"
-              >
-                <span>Go to My Learning</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            )}
-          </div>
-
-          {enrolledCourses.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center max-w-md mx-auto space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-sky-400 flex items-center justify-center mx-auto">
-                <BookOpen className="w-6 h-6" />
+                <Button
+                  onClick={() => navigate("/admin/dashboard")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold h-9 px-4 rounded-xl shadow-xs gap-1.5 cursor-pointer self-start sm:self-auto"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Open Admin Portal</span>
+                </Button>
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                You haven't enrolled in any courses yet
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                Discover our catalog of expert-led courses and start building your skills today.
-              </p>
-              <Button
-                onClick={() => navigate("/course/search?query")}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl h-9 px-4 gap-1.5 cursor-pointer mt-1"
-              >
-                <span>Explore Courses</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {enrolledCourses.map((course) => (
-                <Course course={course} key={course._id} />
-              ))}
-            </div>
-          )}
-        </section>
+
+              {/* 4 Shortcut cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div
+                  onClick={() => navigate("/admin/course")}
+                  className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-blue-50/60 dark:hover:bg-slate-800 transition-all cursor-pointer space-y-1.5 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-sky-400 flex items-center justify-center">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                    Manage Courses
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Create, edit lectures & publish curriculum
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => navigate("/admin/quizzes")}
+                  className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-blue-50/60 dark:hover:bg-slate-800 transition-all cursor-pointer space-y-1.5 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                    <HelpCircle className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                    Course Quizzes
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Assessments, question banks & attempts
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => navigate("/admin/certificates")}
+                  className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-blue-50/60 dark:hover:bg-slate-800 transition-all cursor-pointer space-y-1.5 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                    Certificates Registry
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Official credential tracking & issuance
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => navigate("/admin/payments")}
+                  className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-blue-50/60 dark:hover:bg-slate-800 transition-all cursor-pointer space-y-1.5 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                    Transactions
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Sales overview & revenue reporting
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* ADMIN CREATED COURSES */}
+            <section className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] dark:text-white tracking-tight">
+                      Courses Created by You
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-sky-400 border border-blue-200/60 dark:border-blue-800">
+                      {createdCourses.length}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    Curriculum items published under your instructor profile.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={() => navigate("/admin/course/create")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold h-9 px-4 rounded-xl shadow-xs gap-1.5 cursor-pointer self-start sm:self-auto"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create Course</span>
+                </Button>
+              </div>
+
+              {createdCourses.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center max-w-md mx-auto space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-sky-400 flex items-center justify-center mx-auto">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    No Courses Created Yet
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Build your first educational curriculum with modules and video lectures.
+                  </p>
+                  <Button
+                    onClick={() => navigate("/admin/course/create")}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl h-9 px-4 gap-1.5 cursor-pointer mt-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create Course</span>
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {createdCourses.map((course) => (
+                    <Course course={course} key={course._id} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        ) : (
+          <>
+            {/* 3. LEARNING STREAK & BADGES SECTION (Student Only) */}
+            <section className="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl shadow-xs p-6 sm:p-7 space-y-5 transition-all">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+                    <Flame className="w-7 h-7 fill-white" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg sm:text-xl font-bold text-[#0F172A] dark:text-white">
+                        {streak?.currentStreak || 0} Day Learning Streak
+                      </h2>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800">
+                        {streak?.learnedToday ? "Active Today 🔥" : "Daily Goal"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
+                      <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                      <span>
+                        Longest Streak: <strong>{streak?.longestStreak || 0} days</strong>
+                      </span>
+                      <span className="text-slate-300 dark:text-slate-700">•</span>
+                      <span>
+                        Total Active Days: <strong>{streak?.totalLearningDays || 0}</strong>
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/student/dashboard")}
+                  className="rounded-xl border-[#DCEAF7] dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold h-9 px-3.5 gap-1.5 cursor-pointer self-start sm:self-auto"
+                >
+                  <span>View Streak Details</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              {/* Badges Milestone Grid */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Badges & Achievements
+                  </h3>
+                  <span className="text-xs font-semibold text-blue-600 dark:text-sky-400">
+                    {badges.filter((b) => b.isEarned).length} of {badges.length} Unlocked
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2.5">
+                  {badges.length === 0 ? (
+                    <p className="text-xs text-slate-400">No badges currently listed.</p>
+                  ) : (
+                    badges.map((b) => (
+                      <div
+                        key={b.badgeId}
+                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-medium transition-all ${
+                          b.isEarned
+                            ? "bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-900/60 text-amber-900 dark:text-amber-200 shadow-2xs"
+                            : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
+                        }`}
+                        title={b.description}
+                      >
+                        <span className="text-base">{b.icon}</span>
+                        <span className="font-bold">{b.name}</span>
+                        {b.isEarned ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        ) : (
+                          <Lock className="w-3 h-3 text-slate-400 shrink-0" />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* 4. COURSES YOU ARE ENROLLED IN (Student Only) */}
+            <section className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] dark:text-white tracking-tight">
+                      Courses you are Enrolled in
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-sky-400 border border-blue-200/60 dark:border-blue-800">
+                      {enrolledCourses.length}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    Pick up where you left off or review course lectures.
+                  </p>
+                </div>
+
+                {enrolledCourses.length > 0 && (
+                  <Link
+                    to="/my-learning"
+                    className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-sky-400 transition-colors"
+                  >
+                    <span>Go to My Learning</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
+
+              {enrolledCourses.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center max-w-md mx-auto space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-sky-400 flex items-center justify-center mx-auto">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    You haven't enrolled in any courses yet
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Discover our catalog of expert-led courses and start building your skills today.
+                  </p>
+                  <Button
+                    onClick={() => navigate("/course/search?query")}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl h-9 px-4 gap-1.5 cursor-pointer mt-1"
+                  >
+                    <span>Explore Courses</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {enrolledCourses.map((course) => (
+                    <Course course={course} key={course._id} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
       </main>
 
       {/* ==================================================== */}
