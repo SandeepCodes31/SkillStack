@@ -60,9 +60,9 @@ const Navbar = ({ onOpenContact }) => {
   useEffect(() => {
     if (isSuccess) {
       toast.success(data?.message || "Logged out successfully");
-      navigate("/login");
+      window.location.href = "/login";
     }
-  }, [isSuccess, data, navigate]);
+  }, [isSuccess, data]);
 
   const navLinks = [
     { label: "Home", href: "/" },

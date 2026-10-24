@@ -1,26 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { userLoggedIn, userLoggedOut } from "../authSlice";
 import { USER_API, prepareAuthHeaders } from "@/config/api.config";
-import { courseApi } from "./courseApi";
-import { courseProgressApi } from "./courseProgressApi";
-import { purchaseApi } from "./purchaseApi";
-import { quizApi } from "./quizApi";
-import { certificateApi } from "./certificateApi";
-import { streakApi } from "./streakApi";
-
-const resetAllApiState = (dispatch) => {
-  try {
-    dispatch(authApi.util.resetApiState());
-    dispatch(courseApi.util.resetApiState());
-    dispatch(courseProgressApi.util.resetApiState());
-    dispatch(purchaseApi.util.resetApiState());
-    dispatch(quizApi.util.resetApiState());
-    dispatch(certificateApi.util.resetApiState());
-    dispatch(streakApi.util.resetApiState());
-  } catch (e) {
-    console.warn("Could not reset api state:", e);
-  }
-};
 
 export const authApi = createApi({
   reducerPath: "authApi",
@@ -41,7 +21,6 @@ export const authApi = createApi({
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
-          resetAllApiState(dispatch);
           if (result?.data?.token) {
             localStorage.setItem("token", result.data.token);
           }
@@ -63,7 +42,6 @@ export const authApi = createApi({
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
-          resetAllApiState(dispatch);
           if (result?.data?.token) {
             localStorage.setItem("token", result.data.token);
           }
@@ -90,7 +68,6 @@ export const authApi = createApi({
           localStorage.removeItem("token");
           localStorage.clear();
           dispatch(userLoggedOut());
-          resetAllApiState(dispatch);
         }
       },
     }),

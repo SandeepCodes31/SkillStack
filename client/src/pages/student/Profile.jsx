@@ -57,10 +57,11 @@ const Profile = () => {
   const { data, isLoading, isError, error, refetch } = useLoadUserQuery();
   const user = data?.user;
   const isAdmin = user?.role === "admin" || user?.role === "instructor";
+  const isStudent = user?.role === "student";
 
-  const { data: streakResponse } = useGetMyStreakQuery(undefined, { skip: isAdmin });
-  const { data: badgesResponse } = useGetMyBadgesQuery(undefined, { skip: isAdmin });
-  const { data: certsResponse } = useGetMyCertificatesQuery(undefined, { skip: isAdmin });
+  const { data: streakResponse } = useGetMyStreakQuery(undefined, { skip: !isStudent });
+  const { data: badgesResponse } = useGetMyBadgesQuery(undefined, { skip: !isStudent });
+  const { data: certsResponse } = useGetMyCertificatesQuery(undefined, { skip: !isStudent });
   const { data: creatorCoursesData } = useGetCreatorCourseQuery(undefined, { skip: !isAdmin });
 
   const streak = streakResponse?.data;
