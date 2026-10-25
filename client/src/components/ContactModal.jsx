@@ -115,7 +115,7 @@ const ContactModal = ({ isOpen, onClose }) => {
           setFormData({ name: "", email: "", subject: "", message: "" });
           onClose();
         }, 2500);
-      } catch (fallbackErr) {
+      } catch (_fallbackErr) {
         setIsSubmitting(false);
         toast.error("Could not send message. Please try again later.");
       }

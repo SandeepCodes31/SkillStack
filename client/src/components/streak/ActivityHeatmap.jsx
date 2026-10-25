@@ -19,7 +19,7 @@ const ActivityHeatmap = ({ activityData, isLoading = false }) => {
     );
   }
 
-  const { calendarDays = [], totalDaysTracked = 112 } = activityData || {};
+  const { calendarDays = [], totalDaysTracked: _totalDaysTracked = 112 } = activityData || {};
 
   // Group days into 7-day columns (weeks)
   // Each column represents one week (Sunday to Saturday or Mon to Sun)

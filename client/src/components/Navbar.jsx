@@ -320,7 +320,7 @@ const Navbar = ({ onOpenContact }) => {
 
           {/* MOBILE MENU TOGGLE */}
           <div className="lg:hidden flex items-center">
-            <MobileNavbar user={user} logoutHandler={logoutHandler} />
+            <MobileNavbar user={user} logoutHandler={logoutHandler} onOpenContact={onOpenContact} />
           </div>
         </div>
       </div>
@@ -330,7 +330,7 @@ const Navbar = ({ onOpenContact }) => {
 
 export default Navbar;
 
-const MobileNavbar = ({ user, logoutHandler }) => {
+const MobileNavbar = ({ user, logoutHandler, onOpenContact }) => {
   const navigate = useNavigate();
 
   return (

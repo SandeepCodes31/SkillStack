@@ -62,7 +62,7 @@ const SearchPage = () => {
 
   const courses = data?.courses || [];
   const allCategories = data?.allCategories || [];
-  const count = courses.length;
+
 
   const hasActiveFilters =
     selectedCategories.length > 0 ||

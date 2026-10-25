@@ -4,8 +4,7 @@ import {
   useGetCourseQuizQuery,
   useStartQuizMutation,
   useSubmitQuizMutation,
-  useGetAttemptResultQuery,
-  useGetMyAttemptsQuery,
+  useLazyGetAttemptResultQuery,
 } from "@/features/api/quizApi";
 import {
   Dialog,
@@ -57,6 +56,7 @@ const QuizPage = () => {
 
   const [startQuizMutation, { isLoading: startLoading }] = useStartQuizMutation();
   const [submitQuizMutation, { isLoading: submitLoading }] = useSubmitQuizMutation();
+  const [fetchAttemptResult] = useLazyGetAttemptResultQuery();
 
   // Component States: "start" | "active" | "result" | "review"
   const [mode, setMode] = useState("start");
@@ -79,6 +79,7 @@ const QuizPage = () => {
 
   // Timer Ref
   const timerRef = useRef(null);
+  const handleAutoSubmitRef = useRef(null);
 
   const quiz = quizData?.quiz;
   const eligibility = quizData?.eligibility;
@@ -93,7 +94,7 @@ const QuizPage = () => {
         setRemainingSeconds((prev) => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
-            handleAutoSubmit();
+            handleAutoSubmitRef.current?.();
             return 0;
           }
           return prev - 1;
@@ -160,8 +161,9 @@ const QuizPage = () => {
     toast.warning("Time expired! Your assessment is being submitted automatically.");
     executeSubmission(true);
   };
+  handleAutoSubmitRef.current = handleAutoSubmit;
 
-  const executeSubmission = async (isAuto = false) => {
+  const executeSubmission = async (_isAuto = false) => {
     clearInterval(timerRef.current);
     setSubmitModalOpen(false);
 
@@ -205,11 +207,7 @@ const QuizPage = () => {
     if (!idToFetch) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:8080/api/v1/quiz/attempt/${idToFetch}`,
-        { credentials: "include" }
-      );
-      const data = await response.json();
+      const data = await fetchAttemptResult(idToFetch).unwrap();
       if (data.success) {
         setReviewData(data.review || []);
         if (!resultSummary) {
@@ -221,7 +219,7 @@ const QuizPage = () => {
       }
     } catch (err) {
       console.error("Review fetch error:", err);
-      toast.error("Failed to fetch answer review.");
+      toast.error(err?.data?.message || "Failed to fetch answer review.");
     }
   };
 

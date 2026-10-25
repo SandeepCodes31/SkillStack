@@ -12,6 +12,7 @@ import {
   useUpdateLectureProgressMutation,
 } from "@/features/api/courseProgressApi";
 import { toast } from "sonner";
+import { CERTIFICATE_API } from "@/config/api.config";
 
 const CourseProgress = () => {
   const params = useParams();
@@ -93,7 +94,7 @@ const CourseProgress = () => {
     completed = false,
     progressPercentage = 0,
     courseCompleted = false,
-    finalAssessmentPassed = false,
+    _finalAssessmentPassed = false,
     finalAssessmentScore = null,
     certificateId = null,
   } = data.data;
@@ -102,7 +103,7 @@ const CourseProgress = () => {
   const handleOpenCertificate = async () => {
     if (certificateId) {
       try {
-        const res = await fetch(`http://localhost:8080/api/v1/certificate/${certificateId}`, {
+        const res = await fetch(`${CERTIFICATE_API}${certificateId}`, {
           credentials: "include",
         });
         const d = await res.json();
@@ -112,7 +113,7 @@ const CourseProgress = () => {
         } else {
           toast.error("Certificate record not found.");
         }
-      } catch (e) {
+      } catch (_e) {
         toast.error("Failed to load certificate.");
       }
     }

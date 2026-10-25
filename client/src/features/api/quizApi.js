@@ -122,6 +122,7 @@ export const {
   useStartQuizMutation,
   useSubmitQuizMutation,
   useGetAttemptResultQuery,
+  useLazyGetAttemptResultQuery,
   useGetMyAttemptsQuery,
   useGetAllAdminQuizzesQuery,
   useCreateQuizMutation,

@@ -8,7 +8,12 @@
     "build": "npm run build --prefix client",
     "client": "npm run dev --prefix client",
     "server": "npm run dev --prefix server",
-    "seed:courses": "node server/scripts/seedCourses.js"
+    "lint": "npm run lint --prefix client",
+    "seed:courses": "node server/scripts/seedCourses.js",
+    "test": "node server/scripts/validateSeedData.js && node server/scripts/testAuthAndRoles.js && node server/scripts/testFullLifecycle.js",
+    "test:auth": "node server/scripts/testAuthAndRoles.js",
+    "test:lifecycle": "node server/scripts/testFullLifecycle.js",
+    "test:seed": "node server/scripts/validateSeedData.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

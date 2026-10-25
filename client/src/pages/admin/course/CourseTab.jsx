@@ -45,10 +45,13 @@ const CourseTab = () => {
   // const { data: courseByIdData, isLoading: courseByIdLoading } =
   //   useGetCourseByIdQuery(courseId);
   // const { data: courseByIdData, isLoading: courseByIdLoading } = useGetCourseByIdQuery(courseId);
-  const { data: courseByIdData, isLoading: courseByIdLoading, refetch } =
+  const { data: courseByIdData, refetch } =
     useGetCourseByIdQuery(courseId, { skip: !courseId });
 
-  const [publishCourse,{}] = usePublishCourseMutation();
+  const [publishCourse] = usePublishCourseMutation();
+  const [previewThumbnail, setpreviewThumbnail] = useState("");
+  const [imageError, setImageError] = useState("");
+
 
   // useEffect(() => {
   //   if (courseByIdData?.course) {
@@ -79,13 +82,9 @@ const CourseTab = () => {
       courseThumbnail: course.courseThumbnail || "",
     });
 
-+   setpreviewThumbnail(course.courseThumbnail || "");
+setpreviewThumbnail(course.courseThumbnail || "");
   }
 }, [courseByIdData]);
-
-
-  const [previewThumbnail, setpreviewThumbnail] = useState("");
-  const [imageError, setImageError] = useState("");
 
   const [editCourse, { data, isLoading, isSuccess, error }] =
     useEditCourseMutation();
@@ -173,7 +172,7 @@ const CourseTab = () => {
         refetch();
         toast.success(response.data.message);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to publish or unpublish course");
     }
   }

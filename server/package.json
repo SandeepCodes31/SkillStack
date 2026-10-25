@@ -5,10 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
-    "seed:courses": "node scripts/seedCourses.js"
+    "seed:courses": "node scripts/seedCourses.js",
+    "test": "node scripts/validateSeedData.js && node scripts/testAuthAndRoles.js && node scripts/testFullLifecycle.js",
+    "test:auth": "node scripts/testAuthAndRoles.js",
+    "test:lifecycle": "node scripts/testFullLifecycle.js",
+    "test:seed": "node scripts/validateSeedData.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Sandeep Pal",
   "license": "ISC",
   "description": "",
   "dependencies": {

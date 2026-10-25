@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import Course from "./Course";
 import { useGetPublishedCourseQuery } from "@/features/api/courseApi";
@@ -24,7 +24,7 @@ const filterChips = [
 ];
 
 const Courses = () => {
-  const navigate = useNavigate();
+
   const { data, isLoading, isError } = useGetPublishedCourseQuery();
   const [selectedCategory, setSelectedCategory] = useState("All");
 
