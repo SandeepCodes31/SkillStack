@@ -4,10 +4,12 @@
  */
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (typeof window !== "undefined" && import.meta.env.PROD
+  import.meta.env.VITE_API_BASE_URL &&
+  (!import.meta.env.PROD || !import.meta.env.VITE_API_BASE_URL.includes("localhost"))
+    ? import.meta.env.VITE_API_BASE_URL
+    : typeof window !== "undefined" && import.meta.env.PROD
     ? window.location.origin
-    : "http://localhost:8080");
+    : (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080");
 
 export const USER_API = `${API_BASE_URL}/api/v1/user/`;
 export const COURSE_API = `${API_BASE_URL}/api/v1/course`;
@@ -33,4 +35,3 @@ export const prepareAuthHeaders = (headers) => {
   }
   return headers;
 };
-

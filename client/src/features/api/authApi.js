@@ -90,18 +90,22 @@ export const authApi = createApi({
         method: "GET",
       }),
       providesTags: ["User"],
-      async onQueryStarted(_, { queryFulfilled, dispatch }) {
+      async onQueryStarted(_, { queryFulfilled, dispatch, getState }) {
         try {
           const result = await queryFulfilled;
           if (result?.data?.user) {
             dispatch(userLoggedIn({ user: result.data.user }));
           } else {
             localStorage.removeItem("token");
-            dispatch(userLoggedOut());
+            if (getState()?.auth?.isAuthenticated) {
+              dispatch(userLoggedOut());
+            }
           }
         } catch (error) {
           localStorage.removeItem("token");
-          dispatch(userLoggedOut());
+          if (getState()?.auth?.isAuthenticated) {
+            dispatch(userLoggedOut());
+          }
         }
       },
     }),

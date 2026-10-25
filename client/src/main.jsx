@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.jsx";
@@ -7,11 +7,19 @@ import { appStore } from "./app/store.js";
 import { Toaster } from "sonner";
 import { useLoadUserQuery } from "./features/api/authApi";
 import LoadingSpinner from "./components/LoadingSpinner";
-// import { Heading1 } from "lucide-react";
 
 const Custom = ({ children }) => {
   const { isLoading } = useLoadUserQuery();
-  return <> {isLoading ? <LoadingSpinner/> : <>{children}</>}</>;
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return <>{isLoading && !timedOut ? <LoadingSpinner /> : <>{children}</>}</>;
 };
 
 createRoot(document.getElementById("root")).render(
