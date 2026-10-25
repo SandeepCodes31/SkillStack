@@ -17,11 +17,23 @@ const isAuthenticated = async (req, res, next) => {
   }
 
   try {
-    const user = await User.findById(authData.userId).select("_id role isVerified name email");
+    const user = await User.findById(authData.userId).select("_id role isVerified name email tokenVersion");
     if (!user) {
       return res.status(401).json({
         success: false,
         message: "Account not found. Please log in again.",
+      });
+    }
+
+    // Check if session has been revoked or logged out
+    if (
+      authData.tokenVersion !== undefined &&
+      user.tokenVersion !== undefined &&
+      authData.tokenVersion !== user.tokenVersion
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired or logged out. Please log in again.",
       });
     }
 
@@ -68,8 +80,17 @@ export const optionalAuth = async (req, res, next) => {
   try {
     const authData = extractAndVerifyToken(req);
     if (authData?.userId) {
-      req.id = authData.userId.toString();
-      req.role = authData.role;
+      const user = await User.findById(authData.userId).select("_id role tokenVersion");
+      if (
+        user &&
+        (authData.tokenVersion === undefined ||
+          user.tokenVersion === undefined ||
+          authData.tokenVersion === user.tokenVersion)
+      ) {
+        req.id = user._id.toString();
+        req.role = user.role;
+        req.user = user;
+      }
     }
   } catch (error) {
     // Guest visitor; continue smoothly without req.id

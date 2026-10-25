@@ -453,7 +453,11 @@ export const verifyCheckoutSession = async (req, res) => {
       // Re-establish session cookie if missing
       if (!req.cookies?.token && populatedPurchase?.userId?._id) {
         const token = jwt.sign(
-          { userId: populatedPurchase.userId._id, role: populatedPurchase.userId.role || "student" },
+          {
+            userId: populatedPurchase.userId._id,
+            role: populatedPurchase.userId.role || "student",
+            tokenVersion: populatedPurchase.userId.tokenVersion || 0,
+          },
           process.env.SECRET_KEY,
           { expiresIn: "1d" }
         );
@@ -512,8 +516,13 @@ export const getCourseDetailWithPurchaseStatus = async (req, res) => {
     }
 
     let isPurchased = false;
+    let isCreator = false;
+    let isAdmin = false;
+
     if (userId) {
       const user = await User.findById(userId);
+      isCreator = course.creator?._id?.toString() === userId.toString();
+      isAdmin = req.role === "admin" || user?.role === "admin";
       const isEnrolled = user?.enrolledCourses?.some(
         (cId) => cId.toString() === courseId.toString()
       );
@@ -524,12 +533,31 @@ export const getCourseDetailWithPurchaseStatus = async (req, res) => {
         status: "completed",
       });
 
-      isPurchased = Boolean(isAlreadyPurchased(isEnrolled, completedPurchase));
+      isPurchased = Boolean(isAlreadyPurchased(isEnrolled, completedPurchase) || isCreator || isAdmin);
+    }
+
+    // Convert course to plain JS object to sanitize lectures
+    const courseObj = course.toObject();
+
+    if (!isPurchased) {
+      // Protect curriculum: only preview-free lectures keep videoUrl
+      if (Array.isArray(courseObj.lectures)) {
+        courseObj.lectures = courseObj.lectures.map((lec) => {
+          if (lec.isPreviewFree) {
+            return lec;
+          }
+          return {
+            ...lec,
+            videoUrl: null,
+            publicId: null,
+          };
+        });
+      }
     }
 
     return res.status(200).json({
       success: true,
-      course,
+      course: courseObj,
       purchased: isPurchased,
     });
   } catch (error) {

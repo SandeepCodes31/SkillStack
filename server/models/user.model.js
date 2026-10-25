@@ -22,6 +22,10 @@ const userSchema = new mongoose.Schema({
         type:Boolean,
         default:true
     },
+    tokenVersion:{
+        type:Number,
+        default:0
+    },
     enrolledCourses:[   
         {
             type:mongoose.Schema.Types.ObjectId,

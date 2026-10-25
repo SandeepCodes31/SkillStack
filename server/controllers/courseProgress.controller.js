@@ -1,6 +1,34 @@
 import { CourseProgress } from "../models/courseProgress.js";
 import { Course } from "../models/course.model.js";
+import { CoursePurchase } from "../models/coursePurchase.model.js";
+import { User } from "../models/user.model.js";
 import { recordLearningActivity } from "../services/streak.service.js";
+
+const checkCourseAccess = async (userId, courseId, courseDetails, userRole) => {
+  const user = await User.findById(userId);
+  if (!user) return false;
+
+  const creatorId = courseDetails?.creator?._id
+    ? courseDetails.creator._id.toString()
+    : courseDetails?.creator?.toString();
+  const isCreator = creatorId === userId.toString();
+  const isAdmin = userRole === "admin" || user.role === "admin";
+  if (isCreator || isAdmin) return true;
+
+  const isEnrolled = user.enrolledCourses?.some(
+    (cId) => cId.toString() === courseId.toString()
+  );
+  if (isEnrolled) return true;
+
+  const completedPurchase = await CoursePurchase.findOne({
+    userId,
+    courseId,
+    status: "completed",
+  });
+  if (completedPurchase) return true;
+
+  return false;
+};
 
 export const getCourseProgress = async (req, res) => {
   try {
@@ -13,6 +41,14 @@ export const getCourseProgress = async (req, res) => {
     if (!courseDetails) {
       return res.status(404).json({
         message: "Course not found",
+      });
+    }
+
+    const hasAccess = await checkCourseAccess(userId, courseId, courseDetails, req.role);
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You are not enrolled in this course.",
       });
     }
 
@@ -73,6 +109,14 @@ export const updateLectureProgress = async (req, res) => {
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({ message: "Course not found." });
+    }
+
+    const hasAccess = await checkCourseAccess(userId, courseId, course, req.role);
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You are not enrolled in this course.",
+      });
     }
 
     let courseProgress = await CourseProgress.findOne({ courseId, userId });
@@ -146,6 +190,14 @@ export const markAsCompleted = async (req, res) => {
       return res.status(404).json({ message: "Course not found." });
     }
 
+    const hasAccess = await checkCourseAccess(userId, courseId, course, req.role);
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You are not enrolled in this course.",
+      });
+    }
+
     let courseProgress = await CourseProgress.findOne({ courseId, userId });
     if (!courseProgress) {
       courseProgress = new CourseProgress({
@@ -196,6 +248,17 @@ export const markAsInCompleted = async (req, res) => {
   try {
     const { courseId } = req.params;
     const userId = req.id;
+
+    const course = await Course.findById(courseId);
+    if (course) {
+      const hasAccess = await checkCourseAccess(userId, courseId, course, req.role);
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You are not enrolled in this course.",
+        });
+      }
+    }
 
     const courseProgress = await CourseProgress.findOne({ courseId, userId });
     if (!courseProgress) {

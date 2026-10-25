@@ -56,7 +56,7 @@ export const authApi = createApi({
     logoutUser: builder.mutation({
       query: () => ({
         url: "logout",
-        method: "GET",
+        method: "POST",
       }),
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
         // Step 1: Wipe tokens immediately to block any in-flight auth

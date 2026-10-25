@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,10 @@ import Course from "./Course";
 import {
   useLoadUserQuery,
   useUpdateUserMutation,
+  useLogoutUserMutation,
+  authApi,
 } from "@/features/api/authApi";
+import { userLoggedOut } from "@/features/authSlice";
 import { useGetCreatorCourseQuery } from "@/features/api/courseApi";
 import { useGetMyStreakQuery, useGetMyBadgesQuery } from "@/features/api/streakApi";
 import { useGetMyCertificatesQuery } from "@/features/api/certificateApi";
@@ -43,15 +47,38 @@ import {
   CreditCard,
   Plus,
   Layers,
+  LogOut,
 } from "lucide-react";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [logoutUser] = useLogoutUserMutation();
 
   const [name, setName] = useState("");
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const logoutHandler = async () => {
+    try {
+      localStorage.removeItem("token");
+      localStorage.clear();
+      sessionStorage.clear();
+      dispatch(userLoggedOut());
+      dispatch(authApi.util.resetApiState());
+      await logoutUser().unwrap().catch(() => {});
+    } catch (err) {
+      console.error("Logout notice:", err);
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.clear();
+      sessionStorage.clear();
+      dispatch(userLoggedOut());
+      toast.success("Logged out successfully");
+      window.location.replace("/login");
+    }
+  };
 
   // Queries
   const { data, isLoading, isError, error, refetch } = useLoadUserQuery();
@@ -203,6 +230,15 @@ const Profile = () => {
               <span>{isAdmin ? "Admin Dashboard" : "Student Dashboard"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={logoutHandler}
+              className="rounded-xl border-rose-200/80 dark:border-rose-900/60 bg-white/80 dark:bg-slate-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold h-9 px-3.5 cursor-pointer shadow-2xs gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out</span>
+            </Button>
           </div>
         </div>
 
@@ -243,14 +279,22 @@ const Profile = () => {
                 </button>
               </div>
 
-              {/* Edit Profile Button */}
-              <div className="flex items-center gap-3">
+              {/* Edit Profile & Logout Buttons */}
+              <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
                 <Button
                   onClick={() => setIsEditDialogOpen(true)}
-                  className="bg-[#2563EB] hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold h-10 px-5 rounded-xl shadow-xs cursor-pointer flex items-center gap-2 transition-all active:scale-98"
+                  className="bg-[#2563EB] hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold h-10 px-4 sm:px-5 rounded-xl shadow-xs cursor-pointer flex items-center gap-2 transition-all active:scale-98"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                   <span>Edit Profile</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={logoutHandler}
+                  className="border-rose-200 hover:border-rose-300 dark:border-rose-900/60 text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs sm:text-sm font-semibold h-10 px-4 rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5 transition-all active:scale-98"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Log Out</span>
                 </Button>
               </div>
             </div>

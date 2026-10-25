@@ -328,6 +328,12 @@ export const getCourseById = async (req, res) => {
       });
     }
 
+    if (course.creator?.toString() !== req.id && req.role !== "admin") {
+      return res.status(403).json({
+        message: "You are not authorized to view this course management data.",
+      });
+    }
+
     return res.status(200).json({
       course,
     });
@@ -418,6 +424,12 @@ export const getCourseLecture = async (req, res) => {
     if (!course) {
       return res.status(404).json({
         message: "Course not found",
+      });
+    }
+
+    if (course.creator?.toString() !== req.id && req.role !== "admin") {
+      return res.status(403).json({
+        message: "You are not authorized to access these lecture assets.",
       });
     }
 
@@ -632,6 +644,13 @@ export const getLectureById = async (req, res) => {
     if (!lecture) {
       return res.status(404).json({
         message: "Lecture not found!",
+      });
+    }
+
+    const course = await Course.findOne({ lectures: lectureId });
+    if (course && course.creator?.toString() !== req.id && req.role !== "admin") {
+      return res.status(403).json({
+        message: "You are not authorized to access this lecture asset.",
       });
     }
 

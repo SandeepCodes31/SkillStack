@@ -2,7 +2,7 @@ import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
-import { generateToken } from "../utils/generateToken.js";
+import { generateToken, extractAndVerifyToken } from "../utils/generateToken.js";
 // import { useReducer } from "react";
 import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
 
@@ -156,38 +156,38 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
+    // 1. Invalidate tokens server-side by incrementing tokenVersion
+    const authData = extractAndVerifyToken(req);
+    if (authData?.userId) {
+      await User.findByIdAndUpdate(authData.userId, {
+        $inc: { tokenVersion: 1 },
+      }).catch((err) => console.warn("Failed to increment tokenVersion on logout:", err.message));
+    }
+
     const isProduction =
       process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
 
-    // Explicitly invalidate cookies across all possible browser variations
-    const cookieVariations = [
-      { httpOnly: true, sameSite: isProduction ? "none" : "lax", secure: isProduction, path: "/" },
-      { httpOnly: true, sameSite: "none", secure: true, path: "/" },
-      { httpOnly: true, sameSite: "lax", secure: false, path: "/" },
-      { httpOnly: true, sameSite: "strict", secure: false, path: "/" },
-      { httpOnly: true, sameSite: "lax", secure: true, path: "/" },
-      { httpOnly: true, path: "/" },
-      { path: "/" },
-      {},
-    ];
+    // 2. Cookie options matching generateToken
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
+      path: "/",
+    };
 
-    cookieVariations.forEach((opts) => {
-      res.clearCookie("token", opts);
-      res.cookie("token", "", {
-        ...opts,
-        expires: new Date(0),
-        maxAge: 0,
-      });
+    res.clearCookie("token", cookieOptions);
+    res.cookie("token", "", {
+      ...cookieOptions,
+      expires: new Date(0),
+      maxAge: 0,
     });
 
-    // Also clear other possible cookie variants
-    ["token", "Token", "jwt", "session"].forEach((cName) => {
-      res.clearCookie(cName, { path: "/" });
-      res.cookie(cName, "", { path: "/", expires: new Date(0), maxAge: 0 });
-    });
+    // Fallback root clear
+    res.clearCookie("token", { path: "/" });
+    res.cookie("token", "", { path: "/", expires: new Date(0), maxAge: 0 });
 
     try {
-      res.setHeader("Clear-Site-Data", '"cookies"');
+      res.setHeader("Clear-Site-Data", '"cookies", "storage"');
     } catch (_) {}
 
     return res.status(200).json({

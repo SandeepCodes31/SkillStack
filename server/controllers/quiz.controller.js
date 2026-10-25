@@ -33,9 +33,25 @@ export const getCourseQuiz = async (req, res) => {
     const { courseId } = req.params;
     const studentId = req.id;
 
-    const course = await Course.findById(courseId).select("courseTitle lectures");
+    const course = await Course.findById(courseId).select("courseTitle lectures creator");
     if (!course) {
       return res.status(404).json({ success: false, message: "Course not found." });
+    }
+
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(401).json({ success: false, message: "User not authenticated." });
+    }
+    const isCreator = course.creator?.toString() === studentId.toString();
+    const isAdmin = req.role === "admin" || student.role === "admin";
+    const isEnrolled = student.enrolledCourses?.some(
+      (c) => c.toString() === courseId.toString()
+    );
+    if (!isEnrolled && !isCreator && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "You must be enrolled in this course to access assessments.",
+      });
     }
 
     const quiz = await Quiz.findOne({ courseId, isPublished: true });

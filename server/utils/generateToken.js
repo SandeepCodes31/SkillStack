@@ -81,6 +81,7 @@ export const extractAndVerifyToken = (req) => {
         return {
           userId: decoded.userId || decoded.id,
           role: decoded.role,
+          tokenVersion: decoded.tokenVersion,
           token: candidate,
         };
       }
@@ -95,9 +96,12 @@ export const extractAndVerifyToken = (req) => {
 export const generateToken = (res, user, message) => {
   const secretKey =
     process.env.SECRET_KEY || "snjekfiejgcxkakasdfjd_skillstack_jwt_secret_2026";
-  const token = jwt.sign({ userId: user._id, role: user.role }, secretKey, {
-    expiresIn: "7d",
-  });
+  const tokenVersion = user.tokenVersion ?? 0;
+  const token = jwt.sign(
+    { userId: user._id, role: user.role, tokenVersion },
+    secretKey,
+    { expiresIn: "7d" }
+  );
 
   const isProduction =
     process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);

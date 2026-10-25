@@ -44,13 +44,16 @@ const CourseDetail = () => {
   // Sync initial preview lecture once course data loads
   useEffect(() => {
     if (course?.lectures && course.lectures.length > 0) {
-      const firstWithVideo =
-        course.lectures.find((l) => l.videoUrl && l.isPreviewFree) ||
-        course.lectures.find((l) => l.videoUrl) ||
-        course.lectures[0];
-      setActivePreviewLecture(firstWithVideo);
+      if (purchased) {
+        const firstWithVideo =
+          course.lectures.find((l) => l.videoUrl) || course.lectures[0];
+        setActivePreviewLecture(firstWithVideo);
+      } else {
+        const freePreview = course.lectures.find((l) => l.isPreviewFree && l.videoUrl);
+        setActivePreviewLecture(freePreview || null);
+      }
     }
-  }, [course]);
+  }, [course, purchased]);
 
   const handleContinueCourse = () => {
     if (purchased) {
@@ -124,8 +127,11 @@ const CourseDetail = () => {
   }
 
   const lectures = course.lectures || [];
-  const previewVideoUrl =
-    activePreviewLecture?.videoUrl || lectures.find((l) => l.videoUrl)?.videoUrl;
+  const previewVideoUrl = purchased
+    ? activePreviewLecture?.videoUrl || lectures.find((l) => l.videoUrl)?.videoUrl
+    : activePreviewLecture?.isPreviewFree
+    ? activePreviewLecture?.videoUrl
+    : lectures.find((l) => l.isPreviewFree && l.videoUrl)?.videoUrl;
 
   return (
     <div className="min-h-screen bg-[#F8FBFF] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors pb-16">
@@ -321,32 +327,35 @@ const CourseDetail = () => {
               <div className="space-y-2.5">
                 {lectures.length > 0 ? (
                   lectures.map((lecture, idx) => {
-                    const isPreview = lecture.isPreviewFree || idx === 0;
+                    const isPreview = Boolean(lecture.isPreviewFree);
+                    const canPlay = purchased || isPreview;
                     const isSelected = activePreviewLecture?._id === lecture._id;
 
                     return (
                       <div
                         key={lecture._id || idx}
                         onClick={() => {
-                          if (lecture.videoUrl) {
+                          if (canPlay && lecture.videoUrl) {
                             setActivePreviewLecture(lecture);
+                          } else if (!purchased) {
+                            toast.info("This lesson is locked. Enroll in the course to unlock full access.");
                           }
                         }}
                         className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
                           isSelected
                             ? "border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 shadow-xs"
                             : "border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100/70 dark:hover:bg-slate-800/60"
-                        } ${lecture.videoUrl ? "cursor-pointer" : "cursor-default"}`}
+                        } cursor-pointer`}
                       >
                         <div className="flex items-center gap-3 min-w-0 pr-2">
                           <div
                             className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                              isPreview
+                              canPlay && lecture.videoUrl
                                 ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-sky-400"
                                 : "bg-slate-100 dark:bg-slate-800 text-slate-400"
                             }`}
                           >
-                            {isPreview ? (
+                            {canPlay && lecture.videoUrl ? (
                               <PlayCircle className="w-4 h-4" />
                             ) : (
                               <Lock className="w-3.5 h-3.5" />
@@ -363,9 +372,9 @@ const CourseDetail = () => {
                         </div>
 
                         <div className="shrink-0 flex items-center gap-2">
-                          {isPreview ? (
+                          {canPlay && lecture.videoUrl ? (
                             <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-sky-300">
-                              Preview Free
+                              {purchased ? "Unlocked" : "Preview Free"}
                             </span>
                           ) : (
                             <span className="text-xs text-slate-400 font-medium flex items-center gap-1">

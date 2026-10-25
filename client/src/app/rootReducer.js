@@ -8,7 +8,7 @@ import { quizApi } from "@/features/api/quizApi";
 import { certificateApi } from "@/features/api/certificateApi";
 import { streakApi } from "@/features/api/streakApi";
 
-const rootReducer = combineReducers({
+const appReducer = combineReducers({
   [authApi.reducerPath]: authApi.reducer,
   [courseApi.reducerPath]: courseApi.reducer,
   [purchaseApi.reducerPath]: purchaseApi.reducer,
@@ -18,6 +18,13 @@ const rootReducer = combineReducers({
   [streakApi.reducerPath]: streakApi.reducer,
   auth: authReducer,
 });
+
+const rootReducer = (state, action) => {
+  if (action.type === "authSlice/userLoggedOut") {
+    state = undefined;
+  }
+  return appReducer(state, action);
+};
 
 export default rootReducer;
 
