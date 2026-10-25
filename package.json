@@ -7,7 +7,8 @@
   "scripts": {
     "build": "npm run build --prefix client",
     "client": "npm run dev --prefix client",
-    "server": "npm run dev --prefix server"
+    "server": "npm run dev --prefix server",
+    "seed:courses": "node server/scripts/seedCourses.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

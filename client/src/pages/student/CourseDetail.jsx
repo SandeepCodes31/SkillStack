@@ -453,6 +453,11 @@ const CourseDetail = () => {
                       src={course.courseThumbnail}
                       alt={course.courseTitle}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src =
+                          "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60";
+                      }}
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-4 text-center">
