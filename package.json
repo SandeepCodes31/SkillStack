@@ -25,7 +25,7 @@
     "express-rate-limit": "^8.7.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.10.2",
-    "multer": "^2.0.2",
+    "multer": "^2.5.0",
     "nodemailer": "^10.0.10",
     "pdfkit": "^0.20.2",
     "qrcode": "^1.5.4",
