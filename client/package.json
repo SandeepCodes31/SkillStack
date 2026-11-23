@@ -37,7 +37,7 @@
     "react-redux": "^9.3.0",
     "react-router-dom": "^7.11.0",
     "recharts": "^3.10.1",
-    "sonner": "^2.0.7",
+    "sonner": "^2.0.8",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
     "video.js": "^8.23.4"
