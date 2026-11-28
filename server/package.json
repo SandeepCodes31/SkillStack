@@ -28,7 +28,7 @@
     "multer": "^2.0.2",
     "nodemailer": "^10.0.10",
     "nodemon": "^3.1.14",
-    "pdfkit": "^0.20.2",
+    "pdfkit": "^0.21.0",
     "qrcode": "^1.5.4",
     "stripe": "^22.6.2"
   }
